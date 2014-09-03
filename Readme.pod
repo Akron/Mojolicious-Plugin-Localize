@@ -18,7 +18,7 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
         land  => 'MojoLand'
       },
       welcome => {
-        _  => sub { $_->languages },
+        _  => sub { $_->locale },
         de => "Willkommen in <%=loc 'name_land' %>!",
         en => "Welcome to <%=loc 'name_land' %>!"
       }
@@ -37,6 +37,7 @@ Instead of being a reimplementation it uses L<Mojo::Template> for string interpo
 L<Mojolicious::Plugin::Config> for distributed dictionaries and Mojolicious' helpers
 for template functions.
 
+B<Warning!> This is early software and behaviour may change without notifications!
 
 =head1 METHODS
 
@@ -45,7 +46,7 @@ for template functions.
   app->plugin(Localize => {
     dict => {
       welcome => {
-        _  => sub { $_->languages },
+        _  => sub { $_->locale },
         de => 'Willkommen!',
         en => 'Welcome!'
       }
@@ -76,7 +77,7 @@ with the key C<Localize> (loaded only on first registration).
 In addition to the listed helpers,
 L<Mojolicious::Plugin::Localize> loads further helpers by default,
 see L<num|Mojolicious::Plugin::Localize::Number> and
-L<languages|Mojolicious::Plugin::Localize::Languages>.
+L<locale|Mojolicious::Plugin::Localize::Locale>.
 
 
 =head2 loc
@@ -106,7 +107,7 @@ may precede the C<begin> block.
 =head2 loc_for
 
   %# In templates
-  %= loc 'welcome', { welcome_ => sub { $_->languages } }, begin
+  %= loc 'welcome', { welcome_ => sub { $_->locale } }, begin
   %   loc_for welcome_de => begin
   Herzlich willkommen auf unserer Seite, <%= stash 'user' %>!
   %   end
@@ -122,11 +123,14 @@ several translations may be defined directly in the template,
 that are merged with the dictionary
 on the first compilation of the template.
 
-This comes in handy for template design, so the designer knows at least
-rougly the length and content of a text block to layout.
-
 The helper expects a defined key in L<short notation|/Short Notation>
 and a block containing the dictionary value.
+
+This comes in handy for template design, so the designer knows at least
+rougly the length and content of a text block to layout.
+However, defining a dictionary this way is I<not recommended>,
+as dictionary entries in this way are unknown on application start
+(and therefore inaccessible to the C<localize> command!
 
 B<WARNING>: Never use C<$name> stash values in C<loc_for> blocks, as they will
 be compiled only once with the first rendering. Use C<stash('name')> instead!
@@ -134,11 +138,11 @@ be compiled only once with the first rendering. Use C<stash('name')> instead!
 
 =head2 localize
 
-  $c->localize->languages('de');
+  $c->localize->locale('de');
 
 Helper object for nested helpers.
 L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpers,
-see L<localize.languages|Mojolicious::Plugin::Localize::Languages>.
+see L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
 
 
 =head1 DICTIONARIES
@@ -195,16 +199,16 @@ reference.
 The first parameter passed to subroutines is the controller object.
 The local variable C<$_> is set to the L<nested helper object|/localize>,
 which eases calls to, for example,
-the L<languages|Mojolicious::Plugin::Localize::Languages> helper.
+the L<locale|Mojolicious::Plugin::Localize::locale> helper.
 
   # The preferred key is based on the requested languages
-  _ => sub { $_->languages }
+  _ => sub { $_->locale }
 
 Preferred keys in short notation have a trailing underscore:
 
   {
     greeting => {
-      _ => sub { $_->languages },
+      _ => sub { $_->locale },
       en => 'Hello!',
       de => 'Hallo!'
     }
@@ -212,7 +216,7 @@ Preferred keys in short notation have a trailing underscore:
   # Set the preferred key in nested notation
 
   {
-    greeting_ => sub { $_->languages }
+    greeting_ => sub { $_->locale }
     greeting_en => 'Hello!',
     greeting_de => 'Hallo!'
   }
@@ -258,6 +262,35 @@ To define default keys in short notation, prepend a dash to the subkey in questi
     'welcome_-en' => 'Welcome!',
     'welcome_de'  => 'Willkomen!'
   }
+
+
+=head2 Backtracking
+
+  {
+    _ => [qw/de fr en/],
+    de => {
+      bye => 'Auf Wiedersehen!'
+    },
+    fr => {
+      welcome => 'Bonjour!',
+      bye => 'Au revoir!'
+    },
+    -en => {
+      welcome => 'Welcome!',
+      bye => 'Good bye!'
+    }
+  }
+
+In case a preferred key is not found in a nested structure,
+the dictionary lookup will track back default keys.
+
+For example, if the system looks up the dictionary key C<welcome>,
+there is an existing entry for the preferred key C<de> on the first level,
+but the processing will stop, as no entry for C<welcome> can be found.
+The system will then track back one level and choose the default key C<en>
+instead. The system won't test further preferred keys.
+
+B<BACKTRACKING IS NOT YET SUPPORTED!>
 
 
 =head2 Hints and Conventions

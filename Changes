@@ -1,2 +1,6 @@
+0.02 2014-09-03
+        - Rename ->languages to ->locale.
+	- Small doc improvements.
+
 0.01 2014-09-02
         - Initial submission to GitHub.

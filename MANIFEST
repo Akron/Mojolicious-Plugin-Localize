@@ -1,9 +1,9 @@
 lib/Mojolicious/Plugin/Localize.pm
-lib/Mojolicious/Plugin/Localize/Languages.pm
+lib/Mojolicious/Plugin/Localize/Locale.pm
 lib/Mojolicious/Plugin/Localize/Number.pm
 t/localize.t
 t/localize_num.t
-t/localize_lang.t
+t/localize_locale.t
 t/localize_template.t
 t/localize_config.t
 t/dictionary.conf

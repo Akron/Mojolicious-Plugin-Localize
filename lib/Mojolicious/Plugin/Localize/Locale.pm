@@ -1,4 +1,4 @@
-package Mojolicious::Plugin::Localize::Languages;
+package Mojolicious::Plugin::Localize::Locale;
 use Mojo::Base 'Mojolicious::Plugin';
 use I18N::LangTags qw/implicate_supers/;
 use I18N::LangTags::Detect;
@@ -10,18 +10,18 @@ sub register {
 
   # Establish helpers
   $mojo->helper(
-    'localize.languages' => sub {
+    'localize.locale' => sub {
       my $c = shift;
 
       # Already requested from stash
-      if ($c->stash('localize.lang')) {
+      if ($c->stash('localize.locale')) {
 
 	# Return cached values
-	return $c->stash('localize.lang') if @_ == 0;
+	return $c->stash('localize.locale') if @_ == 0;
 
 	# Prepend override values
-	$c->stash('localize.lang' => my $lang = [
-	  uniq(implicate_supers(map {lc} @_), @{ $c->stash('localize.lang')})
+	$c->stash('localize.locale' => my $lang = [
+	  uniq(implicate_supers(map {lc} @_), @{ $c->stash('localize.locale')})
 	]);
 
 	return $lang;
@@ -38,7 +38,7 @@ sub register {
       unshift(@langs, implicate_supers(map {lc} @_)) if @_ > 0;
 
       # Return lang stash
-      $c->stash('localize.lang' => my $lang = [ uniq(@langs) ]);
+      $c->stash('localize.locale' => my $lang = [ uniq(@langs) ]);
       return $lang;
     }
   );
@@ -52,7 +52,7 @@ sub register {
 
 =head1 NAME
 
-Mojolicious::Plugin::Localize::Languages - Localize based on requested languages
+Mojolicious::Plugin::Localize::Locale - Localize Based on Requested Locales
 
 
 =head1 SYNOPSIS
@@ -61,7 +61,7 @@ Mojolicious::Plugin::Localize::Languages - Localize based on requested languages
   plugin Localize => {
     dict => {
       welcome => {
-        _ => sub { $_->languages },
+        _ => sub { $_->locale },
         -en => 'Welcome!',
         de => 'Willkommen!',
         fr => 'Bonjour!'
@@ -74,7 +74,7 @@ Mojolicious::Plugin::Localize::Languages - Localize based on requested languages
     my $c = shift;
 
     # Prefer the chosen language
-    $c->localize->languages($c->stash('lang')) if $c->stash('lang');
+    $c->localize->locale($c->stash('lang')) if $c->stash('lang');
     return 1;
   };
 
@@ -86,14 +86,14 @@ Mojolicious::Plugin::Localize::Languages - Localize based on requested languages
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::Localize::Languages> detects preferred languages
+L<Mojolicious::Plugin::Localize::Locale> detects preferred languages
 of a user agent's request to be used as preferred keys in dictionaries for
 L<Mojolicious::Plugin::Localize>.
 
 
 =head1 METHODS
 
-L<Mojolicious::Plugin::Localize::Languages> inherits all methods
+L<Mojolicious::Plugin::Localize::Locale> inherits all methods
 from L<Mojolicious::Plugin> and implements the following
 new ones.
 
@@ -101,10 +101,10 @@ new ones.
 =head2 register
 
   # Mojolicious
-  $mojo->plugin('Localize::Languages');
+  $mojo->plugin('Localize::Locale');
 
   # Mojolicious::Lite
-  plugin 'Localize::Languages';
+  plugin 'Localize::Locale';
 
 Called when registering the plugin.
 The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
@@ -112,18 +112,19 @@ The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
 
 =head1 NESTED HELPERS
 
-=head2 localize.languages
+=head2 localize.locale
 
   # Return the requested languages
-  my $lang = $c->localize->languages;
+  my $lang = $c->localize->locale;
   # $lang = ['en-us', 'en']
 
   # Set a preferred language
-  $lang = $c->localize->languages('de-DE');
+  $lang = $c->localize->locale('de-DE');
   # $lang = ['de-de', 'de', 'en-us', 'en']
 
-Returns an array reference of languages the user preferred based on
-the request headers. If language notations following L<RFC 3066|TODO>
+Returns an array reference of locales the user preferred based on
+the request headers. If language notations following
+L<RFC 3066|http://www.ietf.org/rfc/rfc3066.txt>
 are passed, these will be preferred over detected languages
 (e.g. based on the URL path, TLD, GeoIP, or user preferences coming from a database).
 

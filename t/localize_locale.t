@@ -13,36 +13,36 @@ my $c = Mojolicious::Controller->new;
 $c->req->headers->accept_language('de-DE, en-US, en');
 $c->app($app);
 
-is_deeply($c->localize->languages,
+is_deeply($c->localize->locale,
 	  [qw/de-de de en-us en/],
 	  'Languages (New)');
-is_deeply($c->localize->languages('fr-FR'),
+is_deeply($c->localize->locale('fr-FR'),
 	  [qw/fr-fr fr de-de de en-us en/],
 	  'Extend Languages');
-is_deeply($c->localize->languages,
+is_deeply($c->localize->locale,
 	  [qw/fr-fr fr de-de de en-us en/],
 	  'Languages');
 
 # Reset cache
-delete $c->stash->{'localize.lang'};
-is_deeply($c->localize->languages('fr-FR'),
+delete $c->stash->{'localize.locale'};
+is_deeply($c->localize->locale('fr-FR'),
 	  [qw/fr-fr fr de-de de en-us en/],
 	  'Extend Languages (New)');
-is_deeply($c->localize->languages('de-DE'),
+is_deeply($c->localize->locale('de-DE'),
 	  [qw/de-de de fr-fr fr en-us en/],
 	  'Extend Languages (Unique)');
 
 $c->req->headers->accept_language('de-DE, en-US, en, de-DE');
 # Reset cache
-delete $c->stash->{'localize.lang'};
-is_deeply($c->localize->languages,
+delete $c->stash->{'localize.locale'};
+is_deeply($c->localize->locale,
 	  [qw/de-de de en-us en/],
 	  'Languages (New)');
 
 plugin Localize => {
   dict => {
     welcome => {
-      _ => sub { $_->languages },
+      _ => sub { $_->locale },
       -en => 'Welcome!',
       de => 'Willkommen!',
       fr => 'Bonjour!'
@@ -50,14 +50,14 @@ plugin Localize => {
   }
 };
 
-$c->stash('localize.lang' => undef);
+$c->stash('localize.locale' => undef);
 
 # Create language depending routes in Mojolicious::Lite
 under '/:lang' => { lang => '' } => sub {
   my $c = shift;
 
   # Prefer the chosen language
-  $c->localize->languages($c->stash('lang')) if $c->stash('lang');
+  $c->localize->locale($c->stash('lang')) if $c->stash('lang');
   return 1;
 };
 
