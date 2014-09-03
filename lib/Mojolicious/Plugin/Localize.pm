@@ -175,46 +175,15 @@ sub register {
     $mojo->plugin('Localize::Number');
     $mojo->plugin('Localize::Locale');
 
-    $mojo->helper(
-      loc_for => sub {
-	my $c = shift;
-	my $loc_for;
-	unless ($loc_for = $c->stash('localize.for')) {
-	  $c->stash('localize.for' => $loc_for = []);
-	};
-	push(@$loc_for, \@_);
-      }
-    );
-
     # Localization helper
     $mojo->helper(
       loc => sub {
 	my $c = shift;
 	return $global unless @_;
 
-	my $name = shift;
-	my @name = split '_', $name;
+	my @name = split '_', shift;
 
-	# Template dictionary
-	if (ref $_[-1] eq 'CODE' && !$template->{$name}) {
-	  my $snippet = pop;
-
-	  warn 'Add template entries' if $DEBUG;
-
-	  # Merge dictionary hash
-	  $self->_merge($global, $_[0], 0) if $_[0];
-
-	  # Run template snippet
-	  $snippet->();
-
-	  # Add 'loc_for' dictionary entries
-	  foreach (@{$c->stash('localize.for') || []}) {
-	    warn '>>>>>' . $_->[1] if $DEBUG;
-	    $self->_merge($global, { $_->[0] => $_->[1] }, 0);
-	  };
-
-	  $template->{$name} = 1;
-	};
+	my %stash = @_;
 
 	warn 'Look for ' . join('_',  @name) if $DEBUG;
 
@@ -251,7 +220,7 @@ sub register {
 	      # Preferred key is a template
 	      unless (ref $index) {
 
-		my $key = trim $c->include(inline => $index);
+		my $key = trim $c->include(inline => $index, %stash);
 
 		# Store value
 		$entry = $local->{$key};
@@ -294,18 +263,11 @@ sub register {
 
 	# Return entry if it's a string
 	return '' unless $entry;
-
 	return $$entry if ref $entry eq 'SCALAR';
-
-
-
-	if (ref $entry eq 'CODE') {
-	  warn dumper $entry if $DEBUG;
-	  return $entry->() ;
-	};
+	return $entry->($c) if ref $entry eq 'CODE';
 
 	# Return template
-	return trim $c->include(inline => $entry);
+	return trim $c->include(inline => $entry, %stash);
       }
     );
 
@@ -432,52 +394,9 @@ L<locale|Mojolicious::Plugin::Localize::Locale>.
   %# Lookup dictionary entry in templates
   <%= loc 'welcome' %>
 
-  %# Lookup and provide dictionary entries in templates
-  %= loc 'welcome', begin
-  %   loc_for '-en_welcome', begin
-  Welcome to our site!
-  %   end
-  % end
-
 Makes a dictionary lookup and returns a string.
 
-The first parameter is the dictionary key to look up.
-Optionally a C<begin> block may follow, providing several
-translations directly in the template (see L<loc_for|/loc_for>).
-Definitions on the dictionary structure (e.g. to define preferred and default keys)
-may precede the C<begin> block.
-
-
-=head2 loc_for
-
-  %# In templates
-  %= loc 'welcome', { welcome_ => sub { $_->locale } }, begin
-  %   loc_for welcome_de => begin
-  Herzlich willkommen auf unserer Seite, <%= stash 'user' %>!
-  %   end
-  %   loc_for 'welcome_-en' => begin
-  Welcome to our site, <%= stash 'user' %>!
-  %   end
-  % end
-
-Define dictionary entries in templates.
-
-In case, the L<loc|/loc> helper starts a C<begin> block,
-several translations may be defined directly in the template,
-that are merged with the dictionary
-on the first compilation of the template.
-
-The helper expects a defined key in L<short notation|/Short Notation>
-and a block containing the dictionary value.
-
-This comes in handy for template design, so the designer knows at least
-rougly the length and content of a text block to layout.
-However, defining a dictionary this way is I<not recommended>,
-as dictionary entries in this way are unknown on application start
-(and therefore inaccessible to the C<localize> command!
-
-B<WARNING>: Never use C<$name> stash values in C<loc_for> blocks, as they will
-be compiled only once with the first rendering. Use C<stash('name')> instead!
+Expects a dictionary key and further stash values.
 
 
 =head2 localize

@@ -4,7 +4,6 @@ lib/Mojolicious/Plugin/Localize/Number.pm
 t/localize.t
 t/localize_num.t
 t/localize_locale.t
-t/localize_template.t
 t/localize_config.t
 t/dictionary.conf
 t/dictionary2.dict
