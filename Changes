@@ -1,3 +1,7 @@
+0.03 2014-09-07
+        - Added backtracking.
+	- Small doc improvements.
+
 0.02 2014-09-03
         - Rename ->languages to ->locale.
 	- Small doc improvements.

@@ -7,21 +7,16 @@ use List::MoreUtils 'uniq';
 
 $Data::Dumper::Deparse = 1;
 
-# Todo: Support backtracking!
-
 # TODO: 'd' is probably better than 'loc'
 #       'd' for dictionary lookup
 
-# TODO: find out the template parameters for Mojo::Template
-# my $renderer = $mojo->renderer;
-# warn $mojo->dumper($renderer->handlers->{$renderer->default_handler}->($renderer));
+# TODO: Use Mojo::Template directly
 
 # Todo: deal with:
-# There <%=num $g_count 'is', 'are' %> currently
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 our $DEBUG = 0;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -179,15 +174,21 @@ sub register {
     $mojo->helper(
       loc => sub {
 	my $c = shift;
+
+	# Return complete dictionary in case no parameter is defined
+	# This is not documented and may change in further versions
 	return $global unless @_;
 
 	my @name = split '_', shift;
 
-	my %stash = @_;
-
 	warn 'Look for ' . join('_',  @name) if $DEBUG;
 
-	my ($local, $i, $entry) = ($global, 0);
+	# Init some variables
+	my ($local, $i, $entry, @stack) = ($global, 0);
+
+	my $default_entry = shift if @_ && @_ % 2 != 0;
+	my %stash = @_;
+
 
 	# Search for key in infinite loop
 	while () {
@@ -250,19 +251,38 @@ sub register {
 	      };
 	    };
 
+	    # Todo: remember default position, even if preferred key was found!
+
 	    # Get default key
-	    if (!$entry && $local->{'-'}) {
+	    if ($local->{'-'}) {
 	      warn 'There is a default key: ' . $local->{$local->{'-'}} if $DEBUG;
-	      $entry = $local->{$local->{'-'}};
+
+	      # Use the default key
+	      unless ($entry) {
+		$entry = $local->{$local->{'-'}};
+	      }
+
+	      # remember the position for backtracking
+	      else {
+		push(@stack, [$i, $local->{$local->{'-'}}]);
+	      };
 	    };
 	  };
 
 	  # Forward until found in local
-	  last if !ref ($local = $entry) || ref $local eq 'SCALAR' || ref $local eq 'CODE';
+	  if (!$entry && @stack) {
+	    ($i, $local) = @{pop @stack};
+	  }
+	  elsif (!ref ($local = $entry) || ref $local eq 'SCALAR' || ref $local eq 'CODE') {
+	    last;
+	  };
 	};
 
 	# Return entry if it's a string
-	return '' unless $entry;
+	unless ($entry) {
+	  $c->app->log->warn('No entry found for key ' . join('_',  @name));
+	  return $default_entry // '';
+	};
 	return $$entry if ref $entry eq 'SCALAR';
 	return $entry->($c) if ref $entry eq 'CODE';
 
@@ -318,15 +338,21 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
   # Register the plugin with a defined dictionary
   plugin  Localize => {
     dict => {
-      name => {
-        -long => 'Mojolicious',
-        short => 'Mojo',
-        land  => 'MojoLand'
+      _  => sub { $_->locale },
+      de => {
+        welcome => "Willkommen in <%=loc 'name_land' %>!",
+        bye => 'Auf Wiedersehen!'
       },
-      welcome => {
-        _  => sub { $_->locale },
-        de => "Willkommen in <%=loc 'name_land' %>!",
-        en => "Welcome to <%=loc 'name_land' %>!"
+      -en => {
+        welcome => "Welcome to <%=loc 'name_land' %>!",
+        bye => 'Good bye!'
+      },
+      App => {
+        name => {
+          -long => 'Mojolicious',
+          short => 'Mojo',
+          land  => 'MojoLand'
+        }
       }
     }
   };
@@ -340,10 +366,11 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
 L<Mojolicious::Plugin::Localize> is a localization framework for
 Mojolicious, heavily inspired by Mozilla's L<l20n|http://l20n.org/>.
 Instead of being a reimplementation it uses L<Mojo::Template> for string interpolation,
-L<Mojolicious::Plugin::Config> for distributed dictionaries and Mojolicious' helpers
+L<Mojolicious::Plugin::Config> for distributed dictionaries and L<Helpers|Mojolicious/helper>
 for template functions.
 
 B<Warning!> This is early software and behaviour may change without notifications!
+
 
 =head1 METHODS
 
@@ -351,10 +378,14 @@ B<Warning!> This is early software and behaviour may change without notification
 
   app->plugin(Localize => {
     dict => {
-      welcome => {
-        _  => sub { $_->locale },
-        de => 'Willkommen!',
-        en => 'Welcome!'
+      _  => sub { $_->locale },
+      de => {
+        welcome => 'Willkommen!',
+        bye => 'Auf Wiedersehen!',
+      },
+      en => {
+        welcome => 'Welcome!',
+        bye => 'Good bye!'
       }
     },
     override  => 1,
@@ -363,13 +394,13 @@ B<Warning!> This is early software and behaviour may change without notification
 
 Called when registering the plugin.
 
-Expects a parameter C<dict> containing a L<dictionary|/DICTIONARIES>.
+Expects a parameter C<dict> containing a localization L<dictionary|/DICTIONARIES>.
 Further dictionary files to be loaded can be passed as an array reference
 using the C<resources> parameter.
 
 The plugin can be registered multiple times, and defined dictionaries will be merged.
 
-Already existing key definitions won't be overwritten in that way,
+Already existing key definitions won't be overridden in that way,
 unless an additional C<override> parameter is set to a C<true> value.
 Dictionary entries from resource files, on the other hand, will always override,
 so the order of the given array is of relevance.
@@ -388,15 +419,18 @@ L<locale|Mojolicious::Plugin::Localize::Locale>.
 
 =head2 loc
 
-  # Lookup dictionary entry from controller
+  # Lookup a dictionary entry as a controller method
   my $entry = $c->loc('welcome');
 
-  %# Lookup dictionary entry in templates
+  %# Lookup a dictionary entry in templates
   <%= loc 'welcome' %>
+  <%= loc 'welcome', 'Welcome to the site!' %>
+  <%= loc 'welcome', user => 'Peter' %>
+  <%= loc 'welcome', 'Welcome to the site!', user => 'Peter' %>
 
 Makes a dictionary lookup and returns a string.
 
-Expects a dictionary key and further stash values.
+Expects a dictionary key, an optional fallback message and optional stash values.
 
 
 =head2 localize
@@ -410,26 +444,74 @@ see L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
 
 =head1 DICTIONARIES
 
-=head2 Short Notation
+Dictionaries can be loaded by registering the plugin either as a passed C<dict> value
+or in separated files using the C<resources> parameter.
 
-The underscore notation can also be used to flatten nesting dictionary structures.
-The following definitions are therefore equal:
+
+=head2 Notation
 
   {
-    welcome => {
-      de => 'Willkommen!'
+    en => {
+      tree => {
+        sg => 'Tree',
+        pl => 'Trees'
+    },
+    de => {
+      tree => {
+        sg => 'Baum',
+        pl => 'Bäume'
+      }
+    }
+  }
+
+Dictionaries are nested hash references.
+On each level, there is a key that can either lead to a subdictionary
+or to a value.
+  {
+    en => {
+      welcome => 'Welcome!'
+      greeting => '<%= loc "en_welcome" %> Nice to meet you, <%= $user %>!'
+    },
+    de => {
+      welcome => 'Willkommen!',
+      greeting => '<%= loc "de_welcome" %> Schön, Dich zu sehen, <%= $user %>!'
+    }
+  }
+
+Values may be strings, L<Mojo::Template> strings (with default configuration),
+or code references (with the controller object passed when evaluating).
+
+As you see above, values may fetch further dictionary entries using the L<loc|/loc> helper.
+To fetch entries from the dictionary using the L<loc|/loc> helper,
+the user has to pass the key structure in so-called I<short notation>, by adding
+underscores between all keys.
+The short notation for the entry C<Bäume> in the first example is C<de_tree_pl>.
+
+  %= loc 'de_tree_pl'
+  %# 'Bäume'
+
+The short notation can also be used to add new dictionary entries
+using dictionary files or the C<dict> parameter of the plugins registration handler.
+The following dictionary definitions are therefore equal:
+
+  {
+    de => {
+      welcome => 'Willkommen!'
     }
   }
 
   {
-    welcome_de => 'Willkommen!'
+    de_welcome => 'Willkommen!'
   }
+
+There is no limitation for nesting or the order of dictionary entries.
 
 
 =head2 Preferred Keys
 
 The underscore is a special key, marking preferred keys on the dictionary level,
-in case no matching key can be found.
+in case no matching key can be found on that level
+(which is the case when a key in short notation is underspecified).
 
   {
     welcome => {
@@ -440,12 +522,16 @@ in case no matching key can be found.
   }
 
 In case the key C<welcome_de> is requested with the above dictionary established,
-the value C<Willkommen!> will be returned. But if the underspecified key C<welcome>
-is requested without a matching key on the final level, the preferred key C<en> will
+the value C<Willkommen!> will be returned.
+But if the underspecified key C<welcome> is requested without a matching key on the
+final level, the preferred key C<en> will
 be used instead, returning the value C<Welcome!>.
 
-Preferred keys may contain the key as a string, a template, an array reference
-of keys (in order of preference), or a subroutine returning a string or an array
+Preferred keys can exist on any level of the nesting and are always called when
+there is no matching key as part of the short notation.
+
+Preferred keys may contain the key as a string, a L<Mojo::Template>, an array reference
+of keys (in order of preference), or a subroutine returning either a string or an array
 reference.
 
   # The preferred key is 'en'
@@ -455,19 +541,19 @@ reference.
   _ => '<%= $user_status %>'
   _ => sub { shift->stash('user_status') }
 
-  # The preferred key is 'en', and in case this isn't defined, it's 'de'
+  # The preferred key is 'en', and in case this isn't defined, it's 'de' etc.
   _ => [qw/en de/]
   _ => sub { [qw/en de/] }
 
-The first parameter passed to subroutines is the controller object.
-The local variable C<$_> is set to the L<nested helper object|/localize>,
+The first parameter passed to subroutines is the controller object,
+and the local variable C<$_> is set to the L<nested helper object|/localize>,
 which eases calls to, for example,
-the L<locale|Mojolicious::Plugin::Localize::locale> helper.
+the L<locale|Mojolicious::Plugin::Localize::locale> helper
 
-  # The preferred key is based on the requested languages
+  # The preferred key is based on the user agent's localization
   _ => sub { $_->locale }
 
-Preferred keys in short notation have a trailing underscore:
+Preferred keys in I<short notation> have a trailing underscore:
 
   {
     greeting => {
@@ -483,31 +569,14 @@ Preferred keys in short notation have a trailing underscore:
     greeting_en => 'Hello!',
     greeting_de => 'Hallo!'
   }
-  # Same as above in short notation
+  # Set the preferred key in short notation
 
 
 =head2 Default Keys
 
-Default keys are marked with a leading dash symbol and can
-be given in addition to preferred keys.
-They will be triggered, whenever no direct access is given and no
-preferred key matches.
-
-  {
-    welcome => {
-      _   => 'pl',
-      -en => 'Welcome!',
-      de  => 'Welcome!'
-    }
-  }
-
-In case the key C<welcome_de> is requested with the above dictionary established,
-the value C<Willkommen!> will be returned. But if the underspecified key C<welcome>
-is requested without a matching key on the final level, and the preferred key C<pl> 
-isn't defined in another dictionary, the default key C<en> will be used instead,
-returning the value C<Welcome!>.
-
-To define a default key separately, use the single dash key.
+The dash symbol is a special key, marking default keys on the dictionary level,
+in case no matching or preferred key can be found on that level.
+They can be given in addition to preferred keys.
 
   {
     welcome => {
@@ -517,9 +586,24 @@ To define a default key separately, use the single dash key.
       de  => 'Welcome!'
     }
   }
-  # This is the same dictionary entry as above
 
-To define default keys in short notation, prepend a dash to the subkey in question.
+In case the key C<welcome_de> is requested with the above dictionary established,
+the value C<Willkommen!> will be returned. But if the underspecified key C<welcome>
+is requested without a matching key on the final level, and the preferred key C<pl>
+isn't defined in another dictionary, the default key C<en> will be used instead,
+returning the value C<Welcome!>.
+
+Default keys can be alternatively marked with a leading dash symbol.
+
+  {
+    welcome => {
+      _   => 'pl',
+      -en => 'Welcome!',
+      de  => 'Welcome!'
+    }
+  }
+
+To define default keys in I<short notation>, prepend a dash to each subkey in question.
 
   {
     'welcome_-en' => 'Welcome!',
@@ -544,16 +628,17 @@ To define default keys in short notation, prepend a dash to the subkey in questi
     }
   }
 
-In case a preferred key is not found in a nested structure,
-the dictionary lookup will track back default keys.
+In case a key is not found in a nested structure using the L<loc|/loc> helper,
+the dictionary lookup will track back to the last branching default key.
 
 For example, if the system looks up the dictionary key C<welcome>,
 there is an existing entry for the preferred key C<de> on the first level,
-but the processing will stop, as no entry for C<welcome> can be found.
+but the processing will stop, as no entry for C<welcome> can be found on the next level.
 The system will then track back one level and choose the default key C<en>
-instead. The system won't test further preferred keys.
+instead, where an entry for C<welcome> can be found. The value C<Welcome!> will be returned.
 
-B<BACKTRACKING IS NOT YET SUPPORTED!>
+(The system won't test further preferred keys,
+but this behaviour might change in the future.)
 
 
 =head2 Hints and Conventions
@@ -561,13 +646,13 @@ B<BACKTRACKING IS NOT YET SUPPORTED!>
 L<Mojolicious::Plugin::Localize> let you decide, how to nest your dictionary entries.
 For internationalization purposes, it is a good idea to have the language key on the first
 level, so you can establish further entries relying on that structure (see, e.g., the example
-snippet in L<loc|/loc>).
+snippet in L<SYNOPSIS>).
 
-Dictionary keys should always be lower case.
-
-Plugins, that provide their own dictionaries, should prefix their keys with the plugin's name,
-with the first letter in upper case, to prevent clashes with other dictionary entries.
-For example the welcome message for this plugin should be named C<Localize_welcome>.
+Dictionary keys should always be lower case, and plugins,
+that provide their own dictionaries, should prefix their keys with a namespace
+(e.g. the plugin's name) in camel case,
+to prevent clashes with other dictionary entries.
+For example the C<welcome> message for this plugin should be named C<Localize_welcome>.
 
 
 =head1 AVAILABILITY
