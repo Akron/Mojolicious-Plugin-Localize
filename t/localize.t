@@ -353,5 +353,4 @@ is(app->loc('DeepNested_test1_bar'), 'Das ist bar!', 'Deeply Nested test1');
 is(app->loc('DeepNested_test2_xxx'), 'Das ist de_test2_bar_xxx', 'Deeply Nested test2');
 is(app->loc('DeepNested_test2_yyy'), 'This is en_test2_bar_yyy', 'Deeply Nested test2');
 
-
 done_testing;

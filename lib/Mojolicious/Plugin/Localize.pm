@@ -16,7 +16,7 @@ $Data::Dumper::Deparse = 1;
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 our $DEBUG = 0;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -267,6 +267,9 @@ sub register {
 		push(@stack, [$i, $local->{$local->{'-'}}]);
 	      };
 	    };
+
+	    # Empty entries are forcing preferred and default keys
+	    $i++ unless $name[$i];
 	  };
 
 	  # Forward until found in local
@@ -306,11 +309,13 @@ sub register {
       $file = $home->rel_file($file) unless file_name_is_absolute $file;
 
       if (-e $file) {
-	unshift @dict, $config_loader->load($file, undef, $mojo);
-      }
-      else {
-	$mojo->log->warn(qq!Unable to load dictionary file "$file"!);
+	if (my $dict = $config_loader->load($file, undef, $mojo)) {
+	  unshift @dict, $dict;
+	  $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
+	  next;
+	};
       };
+      $mojo->log->warn(qq!Unable to load dictionary file "$file"!);
     };
   };
 
@@ -467,6 +472,7 @@ or in separated files using the C<resources> parameter.
 Dictionaries are nested hash references.
 On each level, there is a key that can either lead to a subdictionary
 or to a value.
+
   {
     en => {
       welcome => 'Welcome!'
@@ -611,6 +617,32 @@ To define default keys in I<short notation>, prepend a dash to each subkey in qu
   }
 
 
+=head2 Forcing Preferred and Default Keys
+
+  {
+    Lang => {
+      _ => [qw/en de pl/],
+      -en => {
+	de => 'German',
+	en => 'English'
+      },
+      de => {
+	de => 'Deutsch',
+	en => 'Englisch'
+      }
+    }
+  }
+
+In rare occasions a L<loc|/loc> call in short notation has to force the
+usage of preferred or default keys over direct key access.
+For example, in the above dictionary a call to C<Lang_de>,
+expecting the value C<German>, will fail, as the C<de> will
+be consumed on the second level and will therefore be missing on the third level.
+To force the usage of the preferred or default keys on the second level,
+simply prepend another underscore to the second key and call
+C<Lang__de> with the expected result.
+
+
 =head2 Backtracking
 
   {
@@ -647,6 +679,9 @@ L<Mojolicious::Plugin::Localize> let you decide, how to nest your dictionary ent
 For internationalization purposes, it is a good idea to have the language key on the first
 level, so you can establish further entries relying on that structure (see, e.g., the example
 snippet in L<SYNOPSIS>).
+
+Instead of passing default messages using the L<loc|/loc> helper, you should always
+define default dictionary entries.
 
 Dictionary keys should always be lower case, and plugins,
 that provide their own dictionaries, should prefix their keys with a namespace
