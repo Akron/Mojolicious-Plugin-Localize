@@ -689,6 +689,24 @@ that provide their own dictionaries, should prefix their keys with a namespace
 to prevent clashes with other dictionary entries.
 For example the C<welcome> message for this plugin should be named C<Localize_welcome>.
 
+Template files can be registered as dictionary keys to be looked up for rendering.
+
+  # Create dictionary keys for templates
+  {
+    Template => {
+      _ => sub { $_->locale },
+      -en => {
+        start => 'en/start'
+      },
+      de => {
+        start => 'de/start'
+      }
+    }
+  }
+
+  # Lookup dictionary entry for rendering
+  $c->render($c->loc('Template_start'), variant => 'mobile');
+
 
 =head1 AVAILABILITY
 
