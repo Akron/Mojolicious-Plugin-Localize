@@ -1,3 +1,6 @@
+0.05 2014-09-16
+        - Fix bug where resources from config files weren't located correctly.
+
 0.04 2014-09-10
         - Added forcing capability for preferred and default keys.
 

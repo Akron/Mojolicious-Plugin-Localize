@@ -153,9 +153,9 @@ The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
   # In templates
   %= num $g_counter, 'guest', 'guests'
 
-Return aan expression based on a given number.
+Return an expression based on a given number.
 
-Expects at least 2 parameters: The number on which the lookup is based and
+Expects at least 2 parameters: The number which the lookup is based on and
 a default dictionary entry (e.g. a singular term).
 This can be followed by two optional scalar parameters: the first optional
 parameter is an entry chosen for all numerical values E<gt> 1 or E<lt> -1,

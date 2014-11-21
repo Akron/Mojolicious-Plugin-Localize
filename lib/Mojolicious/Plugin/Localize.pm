@@ -16,7 +16,7 @@ $Data::Dumper::Deparse = 1;
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 our $DEBUG = 0;
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -162,7 +162,7 @@ sub register {
 
       # Add configuration resources
       if ($c_param->{resources}) {
-	unshift @resources, @{$param->{resources}};
+	unshift @resources, @{$c_param->{resources}};
       };
     };
 
@@ -345,11 +345,11 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
     dict => {
       _  => sub { $_->locale },
       de => {
-        welcome => "Willkommen in <%=loc 'name_land' %>!",
+        welcome => "Willkommen in <%=loc 'App_name_land' %>!",
         bye => 'Auf Wiedersehen!'
       },
       -en => {
-        welcome => "Welcome to <%=loc 'name_land' %>!",
+        welcome => "Welcome to <%=loc 'App_name_land' %>!",
         bye => 'Good bye!'
       },
       App => {
@@ -561,6 +561,7 @@ the L<locale|Mojolicious::Plugin::Localize::locale> helper
 
 Preferred keys in I<short notation> have a trailing underscore:
 
+  # Set the preferred key in nested notation:
   {
     greeting => {
       _ => sub { $_->locale },
@@ -568,14 +569,13 @@ Preferred keys in I<short notation> have a trailing underscore:
       de => 'Hallo!'
     }
   }
-  # Set the preferred key in nested notation
 
+  # Set the preferred key in short notation:
   {
     greeting_ => sub { $_->locale }
     greeting_en => 'Hello!',
     greeting_de => 'Hallo!'
   }
-  # Set the preferred key in short notation
 
 
 =head2 Default Keys
