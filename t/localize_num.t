@@ -39,7 +39,7 @@ is($app->num(10, 'eins', $ex ), 'größer als neun', 'Groesser als neun');
 
 $ex = {
   even => 'gerade',
-  uneven => 'ungerade',
+  odd => 'ungerade',
   3 => 'drei',
   '>50' => 'größer 50'
 };

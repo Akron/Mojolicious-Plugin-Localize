@@ -60,8 +60,10 @@ sub register {
 	  return $param->{even} if exists $param->{even};
 	}
 
-	# Check for 'uneven' value
+	# Check for 'odd' value
 	else {
+	  return $param->{odd} if exists $param->{odd};
+	  # Legacy support
 	  return $param->{uneven} if exists $param->{uneven};
 	};
       };
@@ -187,17 +189,17 @@ Supported keys for dictionary lookups are as follows:
     '1000 .. 9999' => 'thousands'
   }
 
-=item Even/Uneven
+=item Even/odd
 
   {
-    even   => 'robots',
-    uneven => 'humans'
+    even => 'robots',
+    odd  => 'humans'
   }
 
 =back
 
 Exact matches have the highest precedence, followed by ranges and boundaries
-in arbitrary order. Even and uneven values will match before the default values.
+in arbitrary order. Even and odd values will match before the default values.
 
 
 =head1 DEPENDENCIES

@@ -16,7 +16,7 @@ $Data::Dumper::Deparse = 1;
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 our $DEBUG = 0;
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
