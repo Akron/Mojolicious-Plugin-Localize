@@ -7,6 +7,8 @@ use List::MoreUtils 'uniq';
 
 $Data::Dumper::Deparse = 1;
 
+# Wrap http://search.cpan.org/~reneeb/Mojolicious-Plugin-I18NUtils-0.05/lib/Mojolicious/Plugin/I18NUtils.pm
+
 # TODO: 'd' is probably better than 'loc'
 #       'd' for dictionary lookup
 
@@ -15,8 +17,8 @@ $Data::Dumper::Deparse = 1;
 # Todo: deal with:
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
-our $DEBUG = 0;
-our $VERSION = '0.06';
+use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
+our $VERSION = '0.07';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -60,13 +62,13 @@ sub _merge {
   # Iterate over all keys
   foreach my $k (keys %$dict) {
 
-    warn qq!Merge key "$k"! if $DEBUG;
+#    warn qq![MERGE] Treat key "$k"! if DEBUG;
 
     # This is a short notation key
     if (index($k, '_') > 0) {
-      warn "Unflatten $k to ... " if $DEBUG;
+      warn qq![MERGE] Unflatten "$k"! if DEBUG;
       _unflatten(\$k, $dict);
-      warn "... " . dumper $k if $DEBUG;
+#      warn "... " . dumper $k if DEBUG;
     }
 
     # Set preferred key
@@ -74,7 +76,7 @@ sub _merge {
 
       # If override or not set yet, set the new preferred key
       if ($override || !defined $global->{_}) {
-	warn 'Override _' if $DEBUG;
+	warn qq![MERGE] Override "_"! if DEBUG;
 	$global->{_} = $dict->{_};
       };
       next;
@@ -84,23 +86,23 @@ sub _merge {
     if (index($k, '-') == 0) {
       my $standalone = 0;
 
+      warn qq![MERGE] Set a default key of "$k"! if DEBUG;
+
       # This is a prefixed default key
-      if (length $k > 1) {
-	warn 'Set a prefixed default key' if $DEBUG;
+      if (length($k) > 1) {
 	$k = substr($k, 1);
 	$dict->{$k} = delete $dict->{"-$k"};
       }
 
       # This is a standalone default key
       else {
-	warn 'Set a standalone default key' if $DEBUG;
 	$k = $dict->{'-'};
 	$standalone = 1;
       };
 
       # If override or not set yet, set the new default key
       if ($override || !defined $global->{'-'}) {
-	warn 'Override default key' if $DEBUG;
+	warn qq![MERGE] Override default key with "$k"! if DEBUG;
 	$global->{'-'} = $k;
       };
 
@@ -181,7 +183,7 @@ sub register {
 
 	my @name = split '_', shift;
 
-	warn 'Look for ' . join('_',  @name) if $DEBUG;
+	warn '[LOOKUP] Search for "' . join('_',  @name) . '"' if DEBUG;
 
 	# Init some variables
 	my ($local, $i, $entry, @stack) = ($global, 0);
@@ -189,15 +191,34 @@ sub register {
 	my $default_entry = shift if @_ && @_ % 2 != 0;
 	my %stash = @_;
 
-
 	# Search for key in infinite loop
 	while () {
 
 	  # Get the key from the local dictionary
 	  $entry = $name[$i] ? $local->{$name[$i]} : undef;
 
-	  if ($DEBUG) {
-	    warn qq!Search key $i: ! . ($name[$i] // '?') . ' -> ' . ($entry // '');
+	  # Debug information
+	  if (DEBUG) {
+	    my $string = qq![LOOKUP] Partial key "! . ($name[$i] // '?') . '" ';
+
+	    # The found entry may be final or not
+	    if ($entry) {
+	      if (ref $entry eq 'HASH') {
+		$string .= 'leads to step down';
+	      }
+	      elsif (!ref $entry) {
+		$string .= qq!returns value "$entry"!;
+	      }
+	      elsif (ref $entry eq 'SCALAR') {
+		$string .= qq!returns value "$$entry"!;
+	      }
+	      else {
+		$string .= 'is a "' . ref $entry . '" reference';
+	      };
+	    };
+
+	    # print debug information to stderr
+	    warn $string . " on level [$i]";
 	  };
 
 	  # Entry was found
@@ -209,12 +230,10 @@ sub register {
 
 	  # No entry found
 	  else {
-	    warn 'No entry found' if $DEBUG;
+	    warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]! if DEBUG;
 
 	    # Get preferred keys
 	    if ($local->{_}) {
-
-	      warn 'There is a preferred key' if $DEBUG;
 
 	      my $index = $local->{_};
 
@@ -226,7 +245,7 @@ sub register {
 		# Store value
 		$entry = $local->{$key};
 
-		warn '> Template: ' . $key . ' -> ' . $entry if $DEBUG;
+		warn qq![LOOKUP] Found preferred template key "$index" to "$key"! if DEBUG;
 	      }
 
 	      # Preferred key is a subroutine
@@ -235,27 +254,35 @@ sub register {
 		my $preferred = $index->($c);
 
 		for (ref $preferred ? @$preferred : $preferred) {
+		  warn qq![LOOKUP] Check preferred code key "$_"! if DEBUG;
 		  last if $entry = $local->{$_};
 		};
-		warn '> Subroutine: ' .
-		  (ref $preferred ? join(',', @$preferred) : $preferred) .
-		    ' -> ' . ($entry // '') if $DEBUG;
 	      }
 
 	      # Preferred key is an array
 	      elsif (ref $index eq 'ARRAY') {
 		foreach (@$index) {
+		  warn qq![LOOKUP] Check preferred array key "$_"! if DEBUG;
 		  last if $entry = $local->{$_};
 		};
-		warn '> Array: ' . join(',', @$index) . ' -> ' . $entry if $DEBUG;
 	      };
 	    };
 
-	    # Todo: remember default position, even if preferred key was found!
+	    if (DEBUG) {
+	      if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
+		warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
+	      };
+	    };
+
+	    # Todo: Remember default position, even if preferred key was found!
 
 	    # Get default key
 	    if ($local->{'-'}) {
-	      warn 'There is a default key: ' . $local->{$local->{'-'}} if $DEBUG;
+	      if (DEBUG) {
+		unless (ref $local->{$local->{'-'}}) {
+		  warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+		};
+	      };
 
 	      # Use the default key
 	      unless ($entry) {
@@ -284,13 +311,25 @@ sub register {
 	# Return entry if it's a string
 	unless ($entry) {
 	  $c->app->log->warn('No entry found for key ' . join('_',  @name));
+	  warn qq![LOOKUP] Found default value as "$default_entry"! if DEBUG && $default_entry;
 	  return $default_entry // '';
 	};
-	return $$entry if ref $entry eq 'SCALAR';
-	return $entry->($c) if ref $entry eq 'CODE';
+
+	if (ref $entry eq 'SCALAR') {
+	  warn '[LOOKUP] Found scalar value as "' . $$entry . '"' if DEBUG;
+	  return $$entry;
+	}
+
+	elsif (ref $entry eq 'CODE') {
+	  my $value = $entry->($c);
+	  warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
+	  return $value;
+	};
 
 	# Return template
-	return trim $c->include(inline => $entry, %stash);
+	my $value = trim $c->include(inline => $entry, %stash);
+	warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
+	return $value;
       }
     );
 
@@ -310,7 +349,7 @@ sub register {
 
       if (-e $file) {
 	if (my $dict = $config_loader->load($file, undef, $mojo)) {
-	  unshift @dict, $dict;
+	  unshift @dict, [$dict, $file];
 	  $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
 	  next;
 	};
@@ -320,7 +359,12 @@ sub register {
   };
 
   # Merge dictionary hashes
-  $self->_merge($global, $_, $param->{override}) foreach @dict;
+  foreach (@dict) {
+    my $is_array = ref $_ && ref $_ eq 'ARRAY';
+    warn '[MERGE] Start merging' .
+      ($is_array ? (' of ' . $_->[1]) : '') if DEBUG;
+    $self->_merge($global, $is_array ? $_->[0] : $_, $param->{override});
+  };
 };
 
 
@@ -707,6 +751,12 @@ Template files can be registered as dictionary keys to be looked up for renderin
   # Lookup dictionary entry for rendering
   $c->render($c->loc('Template_start'), variant => 'mobile');
 
+=head1
+
+You can set the MOJO_LOCALIZE_DEBUG environment variable to get some
+advanced diagnostics information printed to STDERR.
+
+  MOJO_LOCALIZE_DEBUG=1
 
 =head1 AVAILABILITY
 
