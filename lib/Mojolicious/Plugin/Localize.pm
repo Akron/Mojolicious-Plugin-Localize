@@ -1,11 +1,9 @@
 package Mojolicious::Plugin::Localize;
 use Mojo::Base 'Mojolicious::Plugin';
-use Mojo::Util qw/squish trim dumper/;
+use Mojo::Util qw/squish trim dumper quote/;
 use Mojolicious::Plugin::Config;
 use File::Spec::Functions 'file_name_is_absolute';
 use List::MoreUtils 'uniq';
-
-$Data::Dumper::Deparse = 1;
 
 # Wrap http://search.cpan.org/~reneeb/Mojolicious-Plugin-I18NUtils-0.05/lib/Mojolicious/Plugin/I18NUtils.pm
 
@@ -17,8 +15,8 @@ $Data::Dumper::Deparse = 1;
 # Todo: deal with:
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
-use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
 our $VERSION = '0.07';
+use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -62,13 +60,10 @@ sub _merge {
   # Iterate over all keys
   foreach my $k (keys %$dict) {
 
-#    warn qq![MERGE] Treat key "$k"! if DEBUG;
-
     # This is a short notation key
     if (index($k, '_') > 0) {
       warn qq![MERGE] Unflatten "$k"! if DEBUG;
       _unflatten(\$k, $dict);
-#      warn "... " . dumper $k if DEBUG;
     }
 
     # Set preferred key
@@ -186,7 +181,8 @@ sub register {
 	warn '[LOOKUP] Search for "' . join('_',  @name) . '"' if DEBUG;
 
 	# Init some variables
-	my ($local, $i, $entry, @stack) = ($global, 0);
+	my ($local, $entry, @stack, $debug) = ($global);
+	my ($dict_level, $key_level) = (0,0);
 
 	my $default_entry = shift if @_ && @_ % 2 != 0;
 	my %stash = @_;
@@ -195,78 +191,130 @@ sub register {
 	while () {
 
 	  # Get the key from the local dictionary
-	  $entry = $name[$i] ? $local->{$name[$i]} : undef;
+	  $entry = $name[$key_level] ? $local->{$name[$key_level]} : undef;
 
-	  # Debug information
-	  if (DEBUG) {
-	    my $string = qq![LOOKUP] Partial key "! . ($name[$i] // '?') . '" ';
-
-	    # The found entry may be final or not
-	    if ($entry) {
-	      if (ref $entry eq 'HASH') {
-		$string .= 'leads to step down';
-	      }
-	      elsif (!ref $entry) {
-		$string .= qq!returns value "$entry"!;
-	      }
-	      elsif (ref $entry eq 'SCALAR') {
-		$string .= qq!returns value "$$entry"!;
-	      }
-	      else {
-		$string .= 'is a "' . ref $entry . '" reference';
-	      };
-	    };
-
-	    # print debug information to stderr
-	    warn $string . " on level [$i]";
-	  };
-
-	  # Entry was found
+	  # The entry may be final or not
 	  if ($entry) {
 
-	    # Forward to next subkey
-	    $i++;
-	  }
+	    $debug = '[LOOKUP] Partial key "' . $name[$key_level] . qq!" (level $level)! if DEBUG;
+
+	    # Value is a template
+	    unless (ref $entry) {
+	      # Return template
+	      my $value = trim $c->include(inline => $entry, %stash);
+	      warn $debug . qq!found template value "$value"! if DEBUG;
+	      return $value;
+	    }
+
+	    # Value is a sub entry
+	    elsif (ref $entry eq 'HASH') {
+
+	      $dict_level++;
+
+	      # TODO: Only if this consumes a key!
+	      # Forward to next subkey
+	      $key_level++;
+
+	      warn $debug . 'leads to step down' if DEBUG;
+	    }
+
+	    # Value is a scalar
+	    elsif (ref $entry eq 'SCALAR') {
+	      warn $debug . 'found scalar value "' . $$entry . '"' if DEBUG;
+	      return $$entry;
+	    }
+
+	    # Value is a subroutine, probably a compiled template
+	    elsif (ref $entry eq 'CODE') {
+	      my $value = $entry->($c);
+	      warn qq!found subroutine value "$value"! if DEBUG;
+	      return $value;
+	    }
+
+	    # Wrong type in dictionary
+	    else {
+	      $c->app->log->warn('Unknown entry type for ' . join('_',  @name));
+	    };
+	  };
+
+	  # No entry found, but there is current information on the stack
+	  if (!$entry && $stack[$dict_level]) {
+
+	    # Get last value from stack
+	    my $sub_key = shift @{ $stack[$dict_level]->[1] };
+
+	    # hmmmmm ...
+
+	    next;
+	  };
+
+
+	  # The key is not there or not final:
+	  # Get information for backtracking
+
+
+	  # Check preferred keys
+	  my @preferred;
+	  if (my $index = $local->{_}) {
+
+	    $debug = '[LOOKUP] Check for preferred keys ' if DEBUG;
+
+	    # Preferred key is a template
+	    unless (ref $index) {
+
+	      my $key = trim $c->include(inline => $index, %stash);
+
+	      # Store value
+	      @preferred = ($local->{$key});
+
+	      $debug .= 'from template' if DEBUG;
+	    }
+
+	    # Preferred key is a subroutine
+	    elsif (ref $index eq 'CODE') {
+	      local $_ = $c->localize;
+	      my $preferred = $index->($c);
+
+	      @preferred = (ref $preferred ? @$preferred : $preferred);
+
+	      $debug .= 'from subroutine' if DEBUG;
+	    }
+
+	    # Preferred key is an array
+	    elsif (ref $index eq 'ARRAY') {
+	      @preferred = @$index;
+	    };
+
+	    warn $debug . ' [' join(',', map { quote($_) } @preferred) . ']' if DEBUG;
+	  };
+
+
+	  # Check default key
+	  if ($local->{'-'}) {
+
+	    # default key is relevant
+	    if (exists $local->{$local->{'-'}}) {
+	      $debug = '[LOOKUP] There is a default key "' . $local->{'-'} . '"' if DEBUG;
+	      push(@preferred, $local->{'-'});
+	    };
+	  };
+
+	  # remember the position for backtracking
+	  push(@stack, [$level, $local->{$local->{'-'}}]);
+
+
+# if no entry is found, get a key from the stack
+# The stack looks like this:
+# [$i, $local, [@preferred,$default]
+
+
+
+
 
 	  # No entry found
 	  else {
 	    warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]! if DEBUG;
 
-	    # Get preferred keys
-	    if ($local->{_}) {
-
-	      my $index = $local->{_};
-
-	      # Preferred key is a template
-	      unless (ref $index) {
-
-		my $key = trim $c->include(inline => $index, %stash);
-
-		# Store value
-		$entry = $local->{$key};
-
-		warn qq![LOOKUP] Found preferred template key "$index" to "$key"! if DEBUG;
-	      }
-
-	      # Preferred key is a subroutine
-	      elsif (ref $index eq 'CODE') {
-		local $_ = $c->localize;
-		my $preferred = $index->($c);
-
-		for (ref $preferred ? @$preferred : $preferred) {
-		  warn qq![LOOKUP] Check preferred code key "$_"! if DEBUG;
-		  last if $entry = $local->{$_};
-		};
-	      }
-
-	      # Preferred key is an array
-	      elsif (ref $index eq 'ARRAY') {
-		foreach (@$index) {
-		  warn qq![LOOKUP] Check preferred array key "$_"! if DEBUG;
-		  last if $entry = $local->{$_};
-		};
-	      };
-	    };
 
 	    if (DEBUG) {
 	      if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
@@ -276,24 +324,6 @@ sub register {
 
 	    # Todo: Remember default position, even if preferred key was found!
 
-	    # Get default key
-	    if ($local->{'-'}) {
-	      if (DEBUG) {
-		unless (ref $local->{$local->{'-'}}) {
-		  warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
-		};
-	      };
-
-	      # Use the default key
-	      unless ($entry) {
-		$entry = $local->{$local->{'-'}};
-	      }
-
-	      # remember the position for backtracking
-	      else {
-		push(@stack, [$i, $local->{$local->{'-'}}]);
-	      };
-	    };
 
 	    # Empty entries are forcing preferred and default keys
 	    $i++ unless $name[$i];
@@ -314,22 +344,6 @@ sub register {
 	  warn qq![LOOKUP] Found default value as "$default_entry"! if DEBUG && $default_entry;
 	  return $default_entry // '';
 	};
-
-	if (ref $entry eq 'SCALAR') {
-	  warn '[LOOKUP] Found scalar value as "' . $$entry . '"' if DEBUG;
-	  return $$entry;
-	}
-
-	elsif (ref $entry eq 'CODE') {
-	  my $value = $entry->($c);
-	  warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
-	  return $value;
-	};
-
-	# Return template
-	my $value = trim $c->include(inline => $entry, %stash);
-	warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
-	return $value;
       }
     );
 
