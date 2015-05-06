@@ -16,8 +16,7 @@ $app->plugin('Localize');
 
 is(${app->loc->{welcome}->{en}}, 'Welcome', 'Welcome');
 
-my $c = Mojolicious::Controller->new;
-$c->app($app);
+my $c = $app->build_controller;
 
 $c->req->headers->accept_language('de-DE, en-US, en');
 is($c->loc('welcome'), 'Willkommen', 'Welcome (de)');

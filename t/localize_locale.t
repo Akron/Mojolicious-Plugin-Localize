@@ -9,7 +9,7 @@ my $app = $t->app;
 
 plugin 'Localize';
 
-my $c = Mojolicious::Controller->new;
+my $c = $app->build_controller;
 $c->req->headers->accept_language('de-DE, en-US, en');
 $c->app($app);
 

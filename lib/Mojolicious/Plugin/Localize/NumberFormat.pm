@@ -1,5 +1,11 @@
 __END__
 
+numf => sub {
+  my $c = shift;
+  $c->localize->dec_sep
+  $c->localize->mill_sep
+}
+
 =pod
 
 Quote from: http://search.cpan.org/~toddr/Locale-Maketext-1.26/lib/Locale/Maketext.pod :

@@ -154,7 +154,8 @@ or to a value.
   }
 
 Values may be strings, L<Mojo::Template> strings (with default configuration),
-or code references (with the controller object passed when evaluating).
+or code references (with the controller object passed when evaluating,
+followed by further parameters as a hash).
 
 As you see above, values may fetch further dictionary entries using the L<loc|/loc> helper.
 To fetch entries from the dictionary using the L<loc|/loc> helper,
@@ -390,7 +391,7 @@ advanced diagnostics information printed to STDERR.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2015, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

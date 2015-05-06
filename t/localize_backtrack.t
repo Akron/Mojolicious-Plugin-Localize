@@ -13,7 +13,7 @@ my $languages = sub  {
   return $languages_ref
 };
 
-# $ENV{MOJO_LOCALIZE_DEBUG} = 1;
+$ENV{MOJO_LOCALIZE_DEBUG} = 1;
 
 plugin 'Localize' => {
   dict => {

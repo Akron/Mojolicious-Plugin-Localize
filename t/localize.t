@@ -353,4 +353,22 @@ is(app->loc('DeepNested_test1_bar'), 'Das ist bar!', 'Deeply Nested test1');
 is(app->loc('DeepNested_test2_xxx'), 'Das ist de_test2_bar_xxx', 'Deeply Nested test2');
 is(app->loc('DeepNested_test2_yyy'), 'This is en_test2_bar_yyy', 'Deeply Nested test2');
 
+
+# Test subroutines
+plugin Localize => {
+  dict => {
+    welcome => sub {
+      return 'Cool'
+    },
+    welcome2 => sub {
+      my $c = shift;
+      my %stash = @_;
+      return 'Welcome, guest #' . $stash{number};
+    }
+  }
+};
+
+is(app->loc('welcome'), 'Cool', 'Function');
+is(app->loc('welcome2', number => 2000), 'Welcome, guest #2000', 'Function');
+
 done_testing;

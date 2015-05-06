@@ -6,9 +6,6 @@ use Scalar::Util qw/looks_like_number/;
 # From http://search.cpan.org/~toddr/Locale-Maketext-1.26/lib/Locale/Maketext.pod
 # >> The basic quant method that Locale::Maketext provides should be good for many languages. For some languages, it might be useful to modify it (or its constituent numerate method) to take a plural form in the two-argument call to quant (as in "[quant,_1,files]") if it's all-around easier to infer the singular form from the plural, than to infer the plural form from the singular. <<
 
-
-
-
 our $RANGE_RE = qr/^\s*?([<>]?)\s*([-+]?\d+?)(?:\s*\.\.\s*([-+]?\d+))?\s*$/;
 
 # Register the plugin

@@ -18,7 +18,7 @@ $Data::Dumper::Deparse = 1;
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -240,7 +240,8 @@ sub register {
 	      # Preferred key is a template
 	      unless (ref $index) {
 
-		my $key = trim $c->include(inline => $index, %stash);
+		my $key = $c->include(inline => $index, %stash);
+		$key = trim $key unless delete $stash{no_trim};
 
 		# Store value
 		$entry = $local->{$key};
@@ -321,13 +322,14 @@ sub register {
 	}
 
 	elsif (ref $entry eq 'CODE') {
-	  my $value = $entry->($c);
+	  my $value = $entry->($c, %stash);
 	  warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
 	  return $value;
 	};
 
 	# Return template
-	my $value = trim $c->include(inline => $entry, %stash);
+	my $value = $c->include(inline => $entry, %stash);
+	$value = trim $value unless delete $stash{no_trim};
 	warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
 	return $value;
       }
@@ -529,7 +531,8 @@ or to a value.
   }
 
 Values may be strings, L<Mojo::Template> strings (with default configuration),
-or code references (with the controller object passed when evaluating).
+or code references (with the controller object passed when evaluating,
+followed by further parameters as a hash).
 
 As you see above, values may fetch further dictionary entries using the L<loc|/loc> helper.
 To fetch entries from the dictionary using the L<loc|/loc> helper,
@@ -765,7 +768,7 @@ advanced diagnostics information printed to STDERR.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2015, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.
