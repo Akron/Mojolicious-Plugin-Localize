@@ -18,7 +18,7 @@ $Data::Dumper::Deparse = 1;
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
