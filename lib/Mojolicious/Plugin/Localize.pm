@@ -5,6 +5,8 @@ use Mojolicious::Plugin::Config;
 use File::Spec::Functions 'file_name_is_absolute';
 use List::MoreUtils 'uniq';
 
+# use Hash::Merge or Hash::Merge::Small
+
 $Data::Dumper::Deparse = 1;
 
 # Wrap http://search.cpan.org/~reneeb/Mojolicious-Plugin-I18NUtils-0.05/lib/Mojolicious/Plugin/I18NUtils.pm
@@ -22,6 +24,255 @@ our $VERSION = '0.09';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
+
+
+# Register plugin
+sub register {
+  my ($self, $mojo, $param) = @_;
+
+  state $global   = {};
+  state $template = {};
+  state $init = 0;
+
+  my (@dict, @resources);
+  @dict      = ($param->{dict})       if $param->{dict};      # Hashes
+  @resources = @{$param->{resources}} if $param->{resources}; # File names
+
+  # Not yet initialized
+  unless ($init) {
+
+    # Load parameter from config file
+    if (my $c_param = $mojo->config('Localize')) {
+
+      # Prefer the configuration dictionary
+      push @dict, $c_param->{dict} if $c_param->{dict};
+
+      # Prefer the configuration override parameter
+      $param->{override} = $c_param->{override} if $c_param->{override};
+
+      # Add configuration resources
+      if ($c_param->{resources}) {
+	unshift @resources, @{$c_param->{resources}};
+      };
+    };
+
+    # Load default helper
+    $mojo->plugin('Localize::Number');
+    $mojo->plugin('Localize::Locale');
+
+    # Localization helper
+    $mojo->helper(
+      loc => sub {
+	my $c = shift;
+
+	# Return complete dictionary in case no parameter is defined
+	# This is not documented and may change in further versions
+	return $global unless scalar @_;
+
+	my @name = split '_', shift;
+
+	if (DEBUG) {
+	  warn '[LOOKUP] Search for "' . join('_',  @name) . '"' ;
+	};
+
+	# Init some variables
+	my ($local, $i, $entry, @stack) = ($global, 0);
+
+	my $default_entry = shift if @_ && @_ % 2 != 0;
+	my %stash = @_;
+
+	# Search for key in infinite loop
+	while () {
+
+	  # Get the key from the local dictionary
+	  $entry = $name[$i] ? $local->{$name[$i]} : undef;
+
+	  # Debug information
+	  if (DEBUG) {
+	    my $string = qq![LOOKUP] Partial key "! . ($name[$i] // '?') . '" ';
+
+	    # The found entry may be final or not
+	    if ($entry) {
+	      if (ref $entry eq 'HASH') {
+		$string .= 'leads to step down';
+	      }
+	      elsif (!ref $entry) {
+		$string .= qq!returns value "$entry"!;
+	      }
+	      elsif (ref $entry eq 'SCALAR') {
+		$string .= qq!returns value "$$entry"!;
+	      }
+	      else {
+		$string .= 'is a "' . ref $entry . '" reference';
+	      };
+	    };
+
+	    # print debug information to stderr
+	    warn $string . " on level [$i]";
+	  };
+
+	  # Entry was found
+	  if ($entry) {
+
+	    # Forward to next subkey
+	    $i++;
+	  }
+
+	  # No entry found
+	  else {
+
+	    if (DEBUG) {
+	      warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]!;
+	    };
+
+	    # Get preferred keys
+	    if ($local->{_}) {
+
+	      my $index = $local->{_};
+
+	      # Preferred key is a template
+	      unless (ref $index) {
+
+		my $key = $c->include(inline => $index, %stash);
+		$key = trim $key unless delete $stash{no_trim};
+
+		# Store value
+		$entry = $local->{$key};
+
+		if (DEBUG) {
+		  warn qq![LOOKUP] Found preferred template key "$index" to "$key"!;
+		};
+	      }
+
+	      # Preferred key is a subroutine
+	      elsif (ref $index eq 'CODE') {
+		local $_ = $c->localize;
+		my $preferred = $index->($c);
+
+		for (ref $preferred ? @$preferred : $preferred) {
+		  if (DEBUG) {
+		    warn qq![LOOKUP] Check preferred code key "$_"!;
+		  };
+
+		  last if $entry = $local->{$_};
+		};
+	      }
+
+	      # Preferred key is an array
+	      elsif (ref $index eq 'ARRAY') {
+		foreach (@$index) {
+
+		  if (DEBUG) {
+		    warn qq![LOOKUP] Check preferred array key "$_"!;
+		  };
+
+		  last if $entry = $local->{$_};
+		};
+	      };
+	    };
+
+	    if (DEBUG) {
+	      if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
+		warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
+	      };
+	    };
+
+	    # Todo: Remember default position, even if preferred key was found!
+
+	    # Get default key
+	    if ($local->{'-'}) {
+
+	      if (DEBUG) {
+		unless (ref $local->{$local->{'-'}}) {
+		  warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+		};
+	      };
+
+	      # Use the default key
+	      unless ($entry) {
+		$entry = $local->{$local->{'-'}};
+	      }
+
+	      # remember the position for backtracking
+	      else {
+		push(@stack, [$i, $local->{$local->{'-'}}]);
+	      };
+	    };
+
+	    # Empty entries are forcing preferred and default keys
+	    $i++ unless $name[$i];
+	  };
+
+	  # Forward until found in local
+	  if (!$entry && @stack) {
+	    ($i, $local) = @{pop @stack};
+	  }
+	  elsif (!ref ($local = $entry) ||
+		   ref $local eq 'SCALAR' ||
+		     ref $local eq 'CODE') {
+	    last;
+	  };
+	};
+
+	# Return entry if it's a string
+	unless ($entry) {
+	  $c->app->log->warn('No entry found for key ' . join('_',  @name));
+	  warn qq![LOOKUP] Found default value as "$default_entry"! if DEBUG && $default_entry;
+	  return $default_entry // '';
+	};
+
+	if (ref $entry eq 'SCALAR') {
+	  warn '[LOOKUP] Found scalar value as "' . $$entry . '"' if DEBUG;
+	  return $$entry;
+	}
+
+	elsif (ref $entry eq 'CODE') {
+	  my $value = $entry->($c, %stash);
+	  warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
+	  return $value;
+	};
+
+	# Return template
+	my $value = $c->include(inline => $entry, %stash);
+	$value = trim $value unless delete $stash{no_trim};
+	warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
+	return $value;
+      }
+    );
+
+    $init = 1;
+  };
+
+  # Merge dictionary resources
+  if (@resources) {
+
+    # Create config loader
+    my $config_loader = Mojolicious::Plugin::Config->new;
+    my $home = $mojo->home;
+
+    # Load files
+    foreach my $file (uniq @resources) {
+      $file = $home->rel_file($file) unless file_name_is_absolute $file;
+
+      if (-e $file) {
+	if (my $dict = $config_loader->load($file, undef, $mojo)) {
+	  unshift @dict, [$dict, $file];
+	  $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
+	  next;
+	};
+      };
+      $mojo->log->warn(qq!Unable to load dictionary file "$file"!);
+    };
+  };
+
+  # Merge dictionary hashes
+  foreach (@dict) {
+    my $is_array = ref $_ && ref $_ eq 'ARRAY';
+    warn '[MERGE] Start merging' .
+      ($is_array ? (' of ' . $_->[1]) : '') if DEBUG;
+    $self->_merge($global, $is_array ? $_->[0] : $_, $param->{override});
+  };
+};
 
 
 # Unflatten short notation
@@ -132,240 +383,6 @@ sub _merge {
     elsif ($override) {
       $global->{$k} = _store($dict->{$k});
     };
-  };
-};
-
-
-# Register plugin
-sub register {
-  my ($self, $mojo, $param) = @_;
-
-  state $global   = {};
-  state $template = {};
-  state $init = 0;
-
-  my (@dict, @resources);
-  @dict      = ($param->{dict})       if $param->{dict};
-  @resources = @{$param->{resources}} if $param->{resources};
-
-  # Not yet initialized
-  unless ($init) {
-
-    # Load parameter from config file
-    if (my $c_param = $mojo->config('Localize')) {
-
-      # Prefer the configuration dictionary
-      if ($c_param->{dict}) {
-	push @dict, $c_param->{dict};
-      };
-
-      # Prefer the configuration override parameter
-      $param->{override} = $c_param->{override} if $c_param->{override};
-
-      # Add configuration resources
-      if ($c_param->{resources}) {
-	unshift @resources, @{$c_param->{resources}};
-      };
-    };
-
-    # Load default helper
-    $mojo->plugin('Localize::Number');
-    $mojo->plugin('Localize::Locale');
-
-    # Localization helper
-    $mojo->helper(
-      loc => sub {
-	my $c = shift;
-
-	# Return complete dictionary in case no parameter is defined
-	# This is not documented and may change in further versions
-	return $global unless @_;
-
-	my @name = split '_', shift;
-
-	warn '[LOOKUP] Search for "' . join('_',  @name) . '"' if DEBUG;
-
-	# Init some variables
-	my ($local, $i, $entry, @stack) = ($global, 0);
-
-	my $default_entry = shift if @_ && @_ % 2 != 0;
-	my %stash = @_;
-
-	# Search for key in infinite loop
-	while () {
-
-	  # Get the key from the local dictionary
-	  $entry = $name[$i] ? $local->{$name[$i]} : undef;
-
-	  # Debug information
-	  if (DEBUG) {
-	    my $string = qq![LOOKUP] Partial key "! . ($name[$i] // '?') . '" ';
-
-	    # The found entry may be final or not
-	    if ($entry) {
-	      if (ref $entry eq 'HASH') {
-		$string .= 'leads to step down';
-	      }
-	      elsif (!ref $entry) {
-		$string .= qq!returns value "$entry"!;
-	      }
-	      elsif (ref $entry eq 'SCALAR') {
-		$string .= qq!returns value "$$entry"!;
-	      }
-	      else {
-		$string .= 'is a "' . ref $entry . '" reference';
-	      };
-	    };
-
-	    # print debug information to stderr
-	    warn $string . " on level [$i]";
-	  };
-
-	  # Entry was found
-	  if ($entry) {
-
-	    # Forward to next subkey
-	    $i++;
-	  }
-
-	  # No entry found
-	  else {
-	    warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]! if DEBUG;
-
-	    # Get preferred keys
-	    if ($local->{_}) {
-
-	      my $index = $local->{_};
-
-	      # Preferred key is a template
-	      unless (ref $index) {
-
-		my $key = $c->include(inline => $index, %stash);
-		$key = trim $key unless delete $stash{no_trim};
-
-		# Store value
-		$entry = $local->{$key};
-
-		warn qq![LOOKUP] Found preferred template key "$index" to "$key"! if DEBUG;
-	      }
-
-	      # Preferred key is a subroutine
-	      elsif (ref $index eq 'CODE') {
-		local $_ = $c->localize;
-		my $preferred = $index->($c);
-
-		for (ref $preferred ? @$preferred : $preferred) {
-		  warn qq![LOOKUP] Check preferred code key "$_"! if DEBUG;
-		  last if $entry = $local->{$_};
-		};
-	      }
-
-	      # Preferred key is an array
-	      elsif (ref $index eq 'ARRAY') {
-		foreach (@$index) {
-		  warn qq![LOOKUP] Check preferred array key "$_"! if DEBUG;
-		  last if $entry = $local->{$_};
-		};
-	      };
-	    };
-
-	    if (DEBUG) {
-	      if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
-		warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
-	      };
-	    };
-
-	    # Todo: Remember default position, even if preferred key was found!
-
-	    # Get default key
-	    if ($local->{'-'}) {
-	      if (DEBUG) {
-		unless (ref $local->{$local->{'-'}}) {
-		  warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
-		};
-	      };
-
-	      # Use the default key
-	      unless ($entry) {
-		$entry = $local->{$local->{'-'}};
-	      }
-
-	      # remember the position for backtracking
-	      else {
-		push(@stack, [$i, $local->{$local->{'-'}}]);
-	      };
-	    };
-
-	    # Empty entries are forcing preferred and default keys
-	    $i++ unless $name[$i];
-	  };
-
-	  # Forward until found in local
-	  if (!$entry && @stack) {
-	    ($i, $local) = @{pop @stack};
-	  }
-	  elsif (!ref ($local = $entry) || ref $local eq 'SCALAR' || ref $local eq 'CODE') {
-	    last;
-	  };
-	};
-
-	# Return entry if it's a string
-	unless ($entry) {
-	  $c->app->log->warn('No entry found for key ' . join('_',  @name));
-	  warn qq![LOOKUP] Found default value as "$default_entry"! if DEBUG && $default_entry;
-	  return $default_entry // '';
-	};
-
-	if (ref $entry eq 'SCALAR') {
-	  warn '[LOOKUP] Found scalar value as "' . $$entry . '"' if DEBUG;
-	  return $$entry;
-	}
-
-	elsif (ref $entry eq 'CODE') {
-	  my $value = $entry->($c, %stash);
-	  warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
-	  return $value;
-	};
-
-	# Return template
-	my $value = $c->include(inline => $entry, %stash);
-	$value = trim $value unless delete $stash{no_trim};
-	warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
-	return $value;
-      }
-    );
-
-    $init = 1;
-  };
-
-  # Merge dictionary resources
-  if (@resources) {
-
-    # Create config loader
-    my $config_loader = Mojolicious::Plugin::Config->new;
-    my $home = $mojo->home;
-
-    # Load files
-    foreach my $file (uniq @resources) {
-      $file = $home->rel_file($file) unless file_name_is_absolute $file;
-
-      if (-e $file) {
-	if (my $dict = $config_loader->load($file, undef, $mojo)) {
-	  unshift @dict, [$dict, $file];
-	  $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
-	  next;
-	};
-      };
-      $mojo->log->warn(qq!Unable to load dictionary file "$file"!);
-    };
-  };
-
-  # Merge dictionary hashes
-  foreach (@dict) {
-    my $is_array = ref $_ && ref $_ eq 'ARRAY';
-    warn '[MERGE] Start merging' .
-      ($is_array ? (' of ' . $_->[1]) : '') if DEBUG;
-    $self->_merge($global, $is_array ? $_->[0] : $_, $param->{override});
   };
 };
 

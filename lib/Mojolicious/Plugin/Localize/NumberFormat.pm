@@ -6,6 +6,8 @@ numf => sub {
   $c->localize->mill_sep
 }
 
+! https://metacpan.org/pod/CLDR::Number
+
 =pod
 
 Quote from: http://search.cpan.org/~toddr/Locale-Maketext-1.26/lib/Locale/Maketext.pod :
