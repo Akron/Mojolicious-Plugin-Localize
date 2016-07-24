@@ -1,3 +1,6 @@
+0.10 2016-07-24
+        - Improve support for Mojolicious 7.
+
 0.09 2015-05-27
         - Make Localize installable without -force,
 	  ignoring unsolved problems.

@@ -1,13 +1,13 @@
 package Mojolicious::Plugin::Localize;
 use Mojo::Base 'Mojolicious::Plugin';
-use Mojo::Util qw/squish trim dumper/;
+use Mojo::Util qw/trim/;
 use Mojolicious::Plugin::Config;
 use File::Spec::Functions 'file_name_is_absolute';
 use List::MoreUtils 'uniq';
 
 # use Hash::Merge or Hash::Merge::Small
 
-$Data::Dumper::Deparse = 1;
+# $Data::Dumper::Deparse = 1;
 
 # Wrap http://search.cpan.org/~reneeb/Mojolicious-Plugin-I18NUtils-0.05/lib/Mojolicious/Plugin/I18NUtils.pm
 
@@ -20,7 +20,7 @@ $Data::Dumper::Deparse = 1;
 # <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -785,7 +785,7 @@ advanced diagnostics information printed to STDERR.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2015, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2016, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.
