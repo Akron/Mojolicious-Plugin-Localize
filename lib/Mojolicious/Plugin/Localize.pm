@@ -25,13 +25,14 @@ our $VERSION = '0.10';
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
 
+our $global = {};
 
 # Register plugin
 sub register {
   my ($self, $mojo, $param) = @_;
 
-  state $global   = {};
-  state $template = {};
+  # state $global   = {};
+  # state $template = {};
   state $init = 0;
 
   my (@dict, @resources);
@@ -62,184 +63,7 @@ sub register {
 
 
     # Localization helper
-    $mojo->helper(
-      loc => sub {
-	my $c = shift;
-
-	# Return complete dictionary in case no parameter is defined
-	# This is not documented and may change in further versions
-	return $global unless scalar @_;
-
-	my @name = split '_', shift;
-
-	if (DEBUG) {
-	  warn '[LOOKUP] Search for "' . join('_',  @name) . '"' ;
-	};
-
-	# Init some variables
-	my ($local, $i, $entry, @stack) = ($global, 0);
-
-	my $default_entry = shift if @_ && @_ % 2 != 0;
-	my %stash = @_;
-
-	# Search for key in infinite loop
-	while () {
-
-	  # Get the key from the local dictionary
-	  $entry = $name[$i] ? $local->{$name[$i]} : undef;
-
-	  # Debug information
-	  if (DEBUG) {
-	    my $string = qq![LOOKUP] Partial key "! . ($name[$i] // '?') . '" ';
-
-	    # The found entry may be final or not
-	    if ($entry) {
-	      if (ref $entry eq 'HASH') {
-		$string .= 'leads to step down';
-	      }
-	      elsif (!ref $entry) {
-		$string .= qq!returns value "$entry"!;
-	      }
-	      elsif (ref $entry eq 'SCALAR') {
-		$string .= qq!returns value "$$entry"!;
-	      }
-	      else {
-		$string .= 'is a "' . ref $entry . '" reference';
-	      };
-	    };
-
-	    # print debug information to stderr
-	    warn $string . " on level [$i]";
-	  };
-
-	  # Entry was found
-	  if ($entry) {
-
-	    # Forward to next subkey
-	    $i++;
-	  }
-
-	  # No entry found
-	  else {
-
-	    if (DEBUG) {
-	      warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]!;
-	    };
-
-	    # Get preferred keys
-	    if ($local->{_}) {
-
-	      my $index = $local->{_};
-
-	      # Preferred key is a template
-	      unless (ref $index) {
-
-		my $key = $c->include(inline => $index, %stash);
-		$key = trim $key unless delete $stash{no_trim};
-
-		# Store value
-		$entry = $local->{$key};
-
-		if (DEBUG) {
-		  warn qq![LOOKUP] Found preferred template key "$index" to "$key"!;
-		};
-	      }
-
-	      # Preferred key is a subroutine
-	      elsif (ref $index eq 'CODE') {
-		local $_ = $c->localize;
-		my $preferred = $index->($c);
-
-		for (ref $preferred ? @$preferred : $preferred) {
-		  if (DEBUG) {
-		    warn qq![LOOKUP] Check preferred code key "$_"!;
-		  };
-
-		  last if $entry = $local->{$_};
-		};
-	      }
-
-	      # Preferred key is an array
-	      elsif (ref $index eq 'ARRAY') {
-		foreach (@$index) {
-
-		  if (DEBUG) {
-		    warn qq![LOOKUP] Check preferred array key "$_"!;
-		  };
-
-		  last if $entry = $local->{$_};
-		};
-	      };
-	    };
-
-	    if (DEBUG) {
-	      if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
-		warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
-	      };
-	    };
-
-	    # Todo: Remember default position, even if preferred key was found!
-
-	    # Get default key
-	    if ($local->{'-'}) {
-
-	      if (DEBUG) {
-		unless (ref $local->{$local->{'-'}}) {
-		  warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
-		};
-	      };
-
-	      # Use the default key
-	      unless ($entry) {
-		$entry = $local->{$local->{'-'}};
-	      }
-
-	      # remember the position for backtracking
-	      else {
-		push(@stack, [$i, $local->{$local->{'-'}}]);
-	      };
-	    };
-
-	    # Empty entries are forcing preferred and default keys
-	    $i++ unless $name[$i];
-	  };
-
-	  # Forward until found in local
-	  if (!$entry && @stack) {
-	    ($i, $local) = @{pop @stack};
-	  }
-	  elsif (!ref ($local = $entry) ||
-		   ref $local eq 'SCALAR' ||
-		     ref $local eq 'CODE') {
-	    last;
-	  };
-	};
-
-	# Return entry if it's a string
-	unless ($entry) {
-	  $c->app->log->warn('No entry found for key ' . join('_',  @name));
-	  warn qq![LOOKUP] Found default value as "$default_entry"! if DEBUG && $default_entry;
-	  return $default_entry // '';
-	};
-
-	if (ref $entry eq 'SCALAR') {
-	  warn '[LOOKUP] Found scalar value as "' . $$entry . '"' if DEBUG;
-	  return $$entry;
-	}
-
-	elsif (ref $entry eq 'CODE') {
-	  my $value = $entry->($c, %stash);
-	  warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
-	  return $value;
-	};
-
-	# Return template
-	my $value = $c->include(inline => $entry, %stash);
-	$value = trim $value unless delete $stash{no_trim};
-	warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
-	return $value;
-      }
-    );
+    $mojo->helper(loc => \&_localize);
 
     $init = 1;
   };
@@ -273,6 +97,125 @@ sub register {
       ($is_array ? (' of ' . $_->[1]) : '') if DEBUG;
     $self->_merge($global, $is_array ? $_->[0] : $_, $param->{override});
   };
+};
+
+
+# Take dictionary parameter and localize the term
+sub _localize {
+  my $c = shift;
+
+  # Return complete dictionary in case no parameter is defined
+  # This is not documented and may change in further versions
+  return $global unless scalar @_;
+
+  my @name = split '_', shift;
+
+  if (DEBUG) {
+    warn '[LOOKUP] Search for "' . join('_',  @name) . '"' ;
+  };
+
+  # Init some variables
+  my ($local, $i, $entry, @stack) = ($global, 0);
+
+  my $default_entry = shift if @_ && @_ % 2 != 0;
+  my %stash = @_;
+
+  # Search for key in infinite loop
+  while () {
+
+    # Get the key from the local dictionary
+    $entry = $name[$i] ? $local->{$name[$i]} : undef;
+
+    # Debug information
+    if (DEBUG) {
+      _debug_partial_key($i, $name[$i], $entry);
+    };
+
+    # Entry was found
+    if ($entry) {
+      # Forward to next subkey
+      $i++;
+    }
+
+    # No entry found
+    else {
+
+      # Debug information
+      if (DEBUG) {
+	warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]!;
+      };
+
+      # Get preferred keys
+      if ($local->{_}) {
+	$entry = _get_pref_key($c, $local, \%stash);
+      };
+
+      if (DEBUG) {
+	if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
+	  warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
+	};
+      };
+
+      # Todo: Remember default position, even if preferred key was found!
+
+      # Get default key
+      if ($local->{'-'}) {
+
+	if (DEBUG) {
+	  unless (ref $local->{$local->{'-'}}) {
+	    warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+	  };
+	};
+
+	# Use the default key
+	unless ($entry) {
+	  $entry = $local->{$local->{'-'}};
+	}
+
+	# remember the position for backtracking
+	else {
+	  push(@stack, [$i, $local->{$local->{'-'}}]);
+	};
+      };
+
+      # Empty entries are forcing preferred and default keys
+      $i++ unless $name[$i];
+    };
+
+    # Forward until found in local
+    if (!$entry && @stack) {
+      ($i, $local) = @{pop @stack};
+    }
+    elsif (!ref ($local = $entry) ||
+	     ref $local eq 'SCALAR' ||
+	       ref $local eq 'CODE') {
+      last;
+    };
+  };
+
+  # Return entry if it's a string
+  unless ($entry) {
+    $c->app->log->warn('No entry found for key ' . join('_',  @name));
+    warn qq![LOOKUP] Found default value as "$default_entry"! if DEBUG && $default_entry;
+    return $default_entry // '';
+  };
+
+  if (ref $entry eq 'SCALAR') {
+    warn '[LOOKUP] Found scalar value as "' . $$entry . '"' if DEBUG;
+    return $$entry;
+  }
+
+  elsif (ref $entry eq 'CODE') {
+    my $value = $entry->($c, %stash);
+    warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
+    return $value;
+  };
+
+  # Return template
+  my $value = $c->include(inline => $entry, %stash);
+  $value = trim $value unless delete $stash{no_trim};
+  warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
+  return $value;
 };
 
 
@@ -388,57 +331,93 @@ sub _merge {
 };
 
 
-sub _lookup {
-  my ($stack, $pos, $name, $local, $stash) = @_;
+sub _debug_partial_key {
+  my ($i, $name_i, $entry) = @_;
 
-  # Check for entry
-  my $entry = $name->[$pos] ? $local->{$name->[$pos]} : undef;
+  my $string = qq![LOOKUP] Partial key "! . ($name_i // '?') . '" ';
 
+  # The found entry may be final or not
   if ($entry) {
-    $pos++;
-  }
-
-  # Check preferred key
-  elsif ($local->{_}) {
-
-    my $pref_key = $local->{_};
-
+    if (ref $entry eq 'HASH') {
+      $string .= 'leads to step down';
+    }
+    elsif (!ref $entry) {
+      $string .= qq!returns value "$entry"!;
+    }
+    elsif (ref $entry eq 'SCALAR') {
+      $string .= qq!returns value "$$entry"!;
+    }
+    else {
+      $string .= 'is a "' . ref $entry . '" reference';
+    };
   };
 
-  # Empty entries are forcing preferred and default keys
-  $i++ unless $name[$i];
+  # print debug information to stderr
+  warn $string . " on level [$i]";
 };
+
+
+#sub _lookup {
+#  my ($stack, $pos, $name, $local, $stash) = @_;
+#
+#  # Check for entry
+#  my $entry = $name->[$pos] ? $local->{$name->[$pos]} : undef;
+#
+#  if ($entry) {
+#    $pos++;
+#  }
+#
+#  # Check preferred key
+#  elsif ($local->{_}) {
+#
+#    my $pref_key = $local->{_};
+#
+#  };
+#
+#  # Empty entries are forcing preferred and default keys
+#  $i++ unless $name[$i];
+#};
 
 # Todo: This should return a lazy array of possible entries!
 # Probably an iterator!
-sub _pref_key {
-  my ($c, $pref_key, $stash) = @_;
+sub _get_pref_key {
+  my ($c, $local, $stash) = @_;
+  my $entry;
+
+  # Get preferred key index
+  my $index = $local->{_};
 
   # Preferred key is a template
-  unless (ref $pref_key) {
-    $pref_key = $c->include(inline => $pref_key, %$stash);
-    $pref_key = trim $pref_key unless delete $stash->{no_trim};
+  unless (ref $index) {
+
+    my $key = $c->include(inline => $index, %$stash);
+    $key = trim $key unless delete $stash->{no_trim};
 
     # Store value
-    $entry = $local->{$pref_key};
+    $entry = $local->{$key};
+
+    if (DEBUG) {
+      warn qq![LOOKUP] Found preferred template key "$index" to "$key"!;
+    };
   }
 
   # Preferred key is a subroutine
-  elsif (ref $pref_key eq 'CODE') {
+  elsif (ref $index eq 'CODE') {
     local $_ = $c->localize;
-    my $preferred = $pref_key->($c);
+    my $preferred = $index->($c);
 
     for (ref $preferred ? @$preferred : $preferred) {
       if (DEBUG) {
 	warn qq![LOOKUP] Check preferred code key "$_"!;
       };
+
       last if $entry = $local->{$_};
     };
   }
 
   # Preferred key is an array
-  elsif (ref $pref_key eq 'ARRAY') {
-    foreach (@$pref_key) {
+  elsif (ref $index eq 'ARRAY') {
+    foreach (@$index) {
 
       if (DEBUG) {
 	warn qq![LOOKUP] Check preferred array key "$_"!;
@@ -448,19 +427,60 @@ sub _pref_key {
     };
   };
 
-  if ($local->{'-'}) {
-    if (DEBUG) {
-      unless (ref $local->{$local->{'-'}}) {
-	warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
-      };
-    };
-
-    # Use the default key
-    unless ($entry) {
-      $entry = $local->{$local->{'-'}};
-    }
-  }
+  return $entry;
 };
+
+
+#sub _pref_key {
+#  my ($c, $pref_key, $stash) = @_;
+#
+#  # Preferred key is a template
+#  unless (ref $pref_key) {
+#    $pref_key = $c->include(inline => $pref_key, %$stash);
+#    $pref_key = trim $pref_key unless delete $stash->{no_trim};
+#
+#    # Store value
+#    $entry = $local->{$pref_key};
+#  }
+#
+#  # Preferred key is a subroutine
+#  elsif (ref $pref_key eq 'CODE') {
+#    local $_ = $c->localize;
+#    my $preferred = $pref_key->($c);
+#
+#    for (ref $preferred ? @$preferred : $preferred) {
+#      if (DEBUG) {
+#	warn qq![LOOKUP] Check preferred code key "$_"!;
+#      };
+#      last if $entry = $local->{$_};
+#    };
+#  }
+#
+#  # Preferred key is an array
+#  elsif (ref $pref_key eq 'ARRAY') {
+#    foreach (@$pref_key) {
+#
+#      if (DEBUG) {
+#	warn qq![LOOKUP] Check preferred array key "$_"!;
+#      };
+#
+#      last if $entry = $local->{$_};
+#    };
+#  };
+#
+#  if ($local->{'-'}) {
+#    if (DEBUG) {
+#      unless (ref $local->{$local->{'-'}}) {
+#	warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+#      };
+#    };
+#
+#    # Use the default key
+#    unless ($entry) {
+#      $entry = $local->{$local->{'-'}};
+#    }
+#  }
+#};
 
 
 1;
