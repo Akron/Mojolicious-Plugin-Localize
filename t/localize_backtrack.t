@@ -13,7 +13,7 @@ my $languages = sub  {
   return $languages_ref
 };
 
-# $ENV{MOJO_LOCALIZE_DEBUG} = 1;
+$ENV{MOJO_LOCALIZE_DEBUG} = 1;
 
 plugin 'Localize' => {
   dict => {
@@ -41,20 +41,22 @@ plugin 'Localize' => {
   }
 };
 
-is($app->loc('username'), 'Username', 'Username');
-is($app->loc('Test_pwdconfirm'), 'Confirm password', 'Confirm password');
+warn "---------------------------";
 
-@$languages_ref =  (qw/de en/);
+#is($app->loc('username'), 'Username', 'Username');
+#is($app->loc('Test_pwdconfirm'), 'Confirm password', 'Confirm password');
 
-is($app->loc('username'), 'Benutzername', 'Benutzername');
-is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
+#@$languages_ref =  (qw/de en/);
+
+#is($app->loc('username'), 'Benutzername', 'Benutzername');
+#is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
 
 @$languages_ref =  (qw/svs de en/);
 
-SKIP: {
-  skip 'Correct backtracing is still an issue', 1;
-  is($app->loc('username'), 'Benutzername', 'Benutzername');
-};
+is($app->loc('username'), 'Benutzername', 'Benutzername');
+
+done_testing;
+__END__
 
 is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
 
@@ -62,9 +64,6 @@ is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen')
 
 is($app->loc('username'), 'Username', 'Username');
 
-SKIP: {
-  skip 'Correct backtracing is still an issue', 1;
-  is($app->loc('MojoOroAccount_pwdconfirm'), 'Confirm password', 'Confirm password');
-};
+is($app->loc('MojoOroAccount_pwdconfirm'), 'Confirm password', 'Confirm password');
 
 done_testing;

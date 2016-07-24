@@ -60,6 +60,7 @@ sub register {
     $mojo->plugin('Localize::Number');
     $mojo->plugin('Localize::Locale');
 
+
     # Localization helper
     $mojo->helper(
       loc => sub {
@@ -384,6 +385,81 @@ sub _merge {
       $global->{$k} = _store($dict->{$k});
     };
   };
+};
+
+
+sub _lookup {
+  my ($stack, $pos, $name, $local, $stash) = @_;
+
+  # Check for entry
+  my $entry = $name->[$pos] ? $local->{$name->[$pos]} : undef;
+
+  if ($entry) {
+    $pos++;
+  }
+
+  # Check preferred key
+  elsif ($local->{_}) {
+
+    my $pref_key = $local->{_};
+
+  };
+
+  # Empty entries are forcing preferred and default keys
+  $i++ unless $name[$i];
+};
+
+# Todo: This should return a lazy array of possible entries!
+# Probably an iterator!
+sub _pref_key {
+  my ($c, $pref_key, $stash) = @_;
+
+  # Preferred key is a template
+  unless (ref $pref_key) {
+    $pref_key = $c->include(inline => $pref_key, %$stash);
+    $pref_key = trim $pref_key unless delete $stash->{no_trim};
+
+    # Store value
+    $entry = $local->{$pref_key};
+  }
+
+  # Preferred key is a subroutine
+  elsif (ref $pref_key eq 'CODE') {
+    local $_ = $c->localize;
+    my $preferred = $pref_key->($c);
+
+    for (ref $preferred ? @$preferred : $preferred) {
+      if (DEBUG) {
+	warn qq![LOOKUP] Check preferred code key "$_"!;
+      };
+      last if $entry = $local->{$_};
+    };
+  }
+
+  # Preferred key is an array
+  elsif (ref $pref_key eq 'ARRAY') {
+    foreach (@$pref_key) {
+
+      if (DEBUG) {
+	warn qq![LOOKUP] Check preferred array key "$_"!;
+      };
+
+      last if $entry = $local->{$_};
+    };
+  };
+
+  if ($local->{'-'}) {
+    if (DEBUG) {
+      unless (ref $local->{$local->{'-'}}) {
+	warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+      };
+    };
+
+    # Use the default key
+    unless ($entry) {
+      $entry = $local->{$local->{'-'}};
+    }
+  }
 };
 
 
