@@ -14,7 +14,7 @@ my $languages = sub  {
   return $languages_ref
 };
 
-$ENV{MOJO_LOCALIZE_DEBUG} = 1;
+$ENV{MOJO_LOCALIZE_DEBUG} = 0;
 
 my $dict = {
   _ => $languages,
@@ -44,43 +44,29 @@ plugin 'Localize' => {
   dict => $dict
 };
 
-
-
-my $loc = \&Mojolicious::Plugin::Localize::_localize2;
-is($loc->($dict, 'username'), 'Username', 'Localization fine');
-is($loc->($dict, 'Test_pwdconfirm'), 'Confirm password', 'Confirm password');
+is($app->loc('username'), 'Username', 'Localization fine');
+is($app->loc('Test_pwdconfirm'), 'Confirm password', 'Confirm password');
 
 @$languages_ref =  (qw/de en/);
 
-is($loc->($dict, 'username'), 'Benutzername', 'Benutzername');
-is($loc->($dict, 'Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
+is($app->loc('username'), 'Benutzername', 'Benutzername');
+is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
 
 @$languages_ref =  (qw/svs de en/);
 
-is($loc->($dict, 'username'), 'Benutzername', 'Localization fine');
-is($loc->($dict, 'Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
+is($app->loc('username'), 'Benutzername', 'Username');
+is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Confirm password');
 
-#is($app->loc('username'), 'Username', 'Username');
-#is($app->loc('Test_pwdconfirm'), 'Confirm password', 'Confirm password');
-
-#@$languages_ref =  (qw/de en/);
-
-#is($app->loc('username'), 'Benutzername', 'Benutzername');
-#is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
-
-@$languages_ref =  (qw/svs de en/);
+@$languages_ref =  (qw/de en/);
 
 is($app->loc('username'), 'Benutzername', 'Benutzername');
-
-done_testing;
-__END__
-
 is($app->loc('Test_pwdconfirm'), 'Passwort bestätigen', 'Passwort bestätigen');
 
 @$languages_ref =  (qw/svs en de/);
 
 is($app->loc('username'), 'Username', 'Username');
-
-is($app->loc('MojoOroAccount_pwdconfirm'), 'Confirm password', 'Confirm password');
+is($app->loc('Test_pwdconfirm'), 'Confirm password', 'Confirm password');
 
 done_testing;
+__END__
+

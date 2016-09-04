@@ -1,10 +1,13 @@
+0.11 2016-09-05
+        - Fixed backtracking using recursive lookup.
+
 0.10 2016-07-24
         - Improve support for Mojolicious 7.
-	- Improve backtracking.
+        - Improve backtracking.
 
 0.09 2015-05-27
         - Make Localize installable without -force,
-	  ignoring unsolved problems.
+          ignoring unsolved problems.
 
 0.08 2015-05-06
         - Changed stash passing to subroutines in dictionaries.
@@ -17,18 +20,18 @@
 
 0.05 2014-09-16
         - Fix bug where resources from config files weren't located
-	  correctly.
+          correctly.
 
 0.04 2014-09-10
         - Added forcing capability for preferred and default keys.
 
 0.03 2014-09-07
         - Added backtracking.
-	- Small doc improvements.
+        - Small doc improvements.
 
 0.02 2014-09-03
         - Rename ->languages to ->locale.
-	- Small doc improvements.
+        - Small doc improvements.
 
 0.01 2014-09-02
         - Initial submission to GitHub.

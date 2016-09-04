@@ -8,6 +8,8 @@ use Data::Dumper;
 my $t = Test::Mojo->new;
 my $app = $t->app;
 
+$ENV{MOJO_LOCALIZE_DEBUG} = 0;
+
 my $languages = sub  { [qw/pl en de/] };
 
 plugin 'Localize' => {
@@ -75,6 +77,7 @@ is(app->loc->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willko
 is(app->loc('welcome', name => 'Peter'), 'Serdecznie witamy, Peter!', 'Polish');
 is(app->loc('welcome_de', name => 'Peter'), 'Herzlich Willkommen!', 'German');
 is(app->loc('welcome_en', name => 'Peter'), 'Welcome!', 'English');
+
 
 plugin Localize => {
   dict => {
@@ -148,7 +151,6 @@ plugin 'Localize' => {
 
 is(app->loc('greeting'), 'Serdecznie witamy, Michael! (polish)',
    'Polish');
-
 
 # Override preferred key
 plugin 'Localize' => {
@@ -257,23 +259,23 @@ plugin Localize => {
     Nested => {
       _ => [qw/de fr en/],
       de => {
-	bye => 'Auf Wiedersehen!',
-	tree => {
-	  -sg => 'Baum'
-	}
+        bye => 'Auf Wiedersehen!',
+        tree => {
+          -sg => 'Baum'
+        }
       },
       fr => {
-	welcome => 'Bonjour!',
-	bye => 'Au revoir!'
+        welcome => 'Bonjour!',
+        bye => 'Au revoir!'
       },
       -en => {
-	welcome => 'Welcome!',
-	bye => 'Good bye!',
-	tree => {
-	  _ => [qw/pl/],
-	  -sg => 'Tree',
-	  pl => 'Trees'
-	}
+        welcome => 'Welcome!',
+        bye => 'Good bye!',
+        tree => {
+          _ => [qw/pl/],
+          -sg => 'Tree',
+          pl => 'Trees'
+        }
       }
     }
   }
@@ -287,7 +289,7 @@ is(app->loc('Nested_fr_welcome'), 'Bonjour!', 'Nested fr');
 is(app->loc('Nested_en_welcome'), 'Welcome!', 'Nested en');
 is(app->loc('Nested_de_welcome'), '', 'Nested de - not there');
 
-is(app->loc('Nested_welcome'), 'Welcome!', 'Nested');
+is(app->loc('Nested_welcome'), 'Bonjour!', 'Nested');
 is(app->loc('Nested_tree'), 'Baum', 'Nested');
 
 plugin Localize => {
@@ -295,40 +297,40 @@ plugin Localize => {
     DeepNested => {
       _ => [qw/de en/],
       de => {
-	a => {
-	  b => {
-	    c => 'Das ist c!'
-	  }
-	},
-	test1 => {
-	  _ => [qw/foo/],
-	  bar => "Das ist bar!"
-	},
-	test2 => {
-	  _ => [qw/foo bar/],
-	  bar => {
-	    xxx => 'Das ist de_test2_bar_xxx'
-	  }
-	}
+        a => {
+          b => {
+            c => 'Das ist c!'
+          }
+        },
+        test1 => {
+          _ => [qw/foo/],
+          bar => "Das ist bar!"
+        },
+        test2 => {
+          _ => [qw/foo bar/],
+          bar => {
+            xxx => 'Das ist de_test2_bar_xxx'
+          }
+        }
       },
       -en => {
-	a => {
-	  b => {
-	    c => 'This is c!',
-	    d => 'This is d!'
-	  }
-	},
-	test1 => {
-	  _ => [qw/foo bar/],
-	  bar => "This is bar!",
-	  foo => "This is foo!"
-	},
-	test2 => {
-	  _ => [qw/foo bar/],
-	  bar => {
-	    yyy => 'This is en_test2_bar_yyy'
-	  }
-	}
+        a => {
+          b => {
+            c => 'This is c!',
+            d => 'This is d!'
+          }
+        },
+        test1 => {
+          _ => [qw/foo bar/],
+          bar => "This is bar!",
+          foo => "This is foo!"
+        },
+        test2 => {
+          _ => [qw/foo bar/],
+          bar => {
+            yyy => 'This is en_test2_bar_yyy'
+          }
+        }
       }
     }
   }
@@ -342,6 +344,7 @@ is(app->loc('DeepNested_de_a_b_d'), '', 'Deeply Nested exact not found');
 # Check default message
 is(app->loc('DeepNested_de_a_b_d', 'Default message'),
    'Default message', 'Deeply Nested exact not found');
+
 is(app->loc('DeepNested_de_a_b_d', 'Default message', user => 'Peter'),
    'Default message', 'Deeply Nested exact not found');
 is(app->loc('DeepNested_de_a_b_d'), '', 'Deeply Nested exact not found');
