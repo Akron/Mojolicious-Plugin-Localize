@@ -13,11 +13,10 @@ use List::MoreUtils 'uniq';
 
 # TODO: 'd' is probably better than 'loc'
 #       'd' for dictionary lookup
-
 # TODO: Use Mojo::Template directly
-
-# Todo: deal with:
-# <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
+# TODO: deal with:
+#       <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
+# TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
 our $VERSION = '0.10';
@@ -53,14 +52,13 @@ sub register {
 
       # Add configuration resources
       if ($c_param->{resources}) {
-	unshift @resources, @{$c_param->{resources}};
+        unshift @resources, @{$c_param->{resources}};
       };
     };
 
     # Load default helper
     $mojo->plugin('Localize::Number');
     $mojo->plugin('Localize::Locale');
-
 
     # Localization helper
     $mojo->helper(loc => \&_localize);
@@ -80,11 +78,11 @@ sub register {
       $file = $home->rel_file($file) unless file_name_is_absolute $file;
 
       if (-e $file) {
-	if (my $dict = $config_loader->load($file, undef, $mojo)) {
-	  unshift @dict, [$dict, $file];
-	  $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
-	  next;
-	};
+        if (my $dict = $config_loader->load($file, undef, $mojo)) {
+          unshift @dict, [$dict, $file];
+          $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
+          next;
+        };
       };
       $mojo->log->warn(qq!Unable to load dictionary file "$file"!);
     };
@@ -117,7 +115,10 @@ sub _localize {
   # Init some variables
   my ($local, $i, $entry, @stack) = ($global, 0);
 
+  # If a default entry is given, get it
   my $default_entry = shift if @_ && @_ % 2 != 0;
+
+  # Store all other values in the stash
   my %stash = @_;
 
   # Search for key in infinite loop
@@ -125,6 +126,7 @@ sub _localize {
 
     # Get the key from the local dictionary
     $entry = $name[$i] ? $local->{$name[$i]} : undef;
+    # The local dictionary is initially global
 
     # Debug information
     if (DEBUG) {
@@ -135,6 +137,12 @@ sub _localize {
     if ($entry) {
       # Forward to next subkey
       $i++;
+
+      # Debug information
+      if (DEBUG) {
+        warn '[LOOKUP] Found entry for "' . $name[$i] . qq!" on level [$i]!;
+      };
+
     }
 
     # No entry found
@@ -142,18 +150,18 @@ sub _localize {
 
       # Debug information
       if (DEBUG) {
-	warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]!;
+        warn '[LOOKUP] No entry found for "' . $name[$i] . qq!" on level [$i]!;
       };
 
       # Get preferred keys
       if ($local->{_}) {
-	$entry = _get_pref_key($c, $local, \%stash);
+        $entry = _get_pref_key($c, $local, \%stash);
       };
 
       if (DEBUG) {
-	if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
-	  warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
-	};
+        if ($entry && (!ref($entry) || ref $entry eq 'SCALAR')) {
+          warn q![LOOKUP] Found final entry "! . ref $entry ? $$entry : $entry . '"';
+        };
       };
 
       # Todo: Remember default position, even if preferred key was found!
@@ -161,21 +169,21 @@ sub _localize {
       # Get default key
       if ($local->{'-'}) {
 
-	if (DEBUG) {
-	  unless (ref $local->{$local->{'-'}}) {
-	    warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
-	  };
-	};
+        if (DEBUG) {
+          unless (ref $local->{$local->{'-'}}) {
+            warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+          };
+        };
 
-	# Use the default key
-	unless ($entry) {
-	  $entry = $local->{$local->{'-'}};
-	}
+        # Use the default key
+        unless ($entry) {
+          $entry = $local->{$local->{'-'}};
+        }
 
-	# remember the position for backtracking
-	else {
-	  push(@stack, [$i, $local->{$local->{'-'}}]);
-	};
+        # remember the position for backtracking
+        else {
+          push(@stack, [$i, $local->{$local->{'-'}}]);
+        };
       };
 
       # Empty entries are forcing preferred and default keys
@@ -187,8 +195,8 @@ sub _localize {
       ($i, $local) = @{pop @stack};
     }
     elsif (!ref ($local = $entry) ||
-	     ref $local eq 'SCALAR' ||
-	       ref $local eq 'CODE') {
+             ref $local eq 'SCALAR' ||
+             ref $local eq 'CODE') {
       last;
     };
   };
@@ -257,13 +265,13 @@ sub _merge {
   # Iterate over all keys
   foreach my $k (keys %$dict) {
 
-#    warn qq![MERGE] Treat key "$k"! if DEBUG;
+    # warn qq![MERGE] Treat key "$k"! if DEBUG;
 
     # This is a short notation key
     if (index($k, '_') > 0) {
       warn qq![MERGE] Unflatten "$k"! if DEBUG;
       _unflatten(\$k, $dict);
-#      warn "... " . dumper $k if DEBUG;
+      # warn "... " . dumper $k if DEBUG;
     }
 
     # Set preferred key
@@ -271,8 +279,8 @@ sub _merge {
 
       # If override or not set yet, set the new preferred key
       if ($override || !defined $global->{_}) {
-	warn qq![MERGE] Override "_"! if DEBUG;
-	$global->{_} = $dict->{_};
+        warn qq![MERGE] Override "_"! if DEBUG;
+        $global->{_} = $dict->{_};
       };
       next;
     };
@@ -285,36 +293,36 @@ sub _merge {
 
       # This is a prefixed default key
       if (length($k) > 1) {
-	$k = substr($k, 1);
-	$dict->{$k} = delete $dict->{"-$k"};
+        $k = substr($k, 1);
+        $dict->{$k} = delete $dict->{"-$k"};
       }
 
       # This is a standalone default key
       else {
-	$k = $dict->{'-'};
-	$standalone = 1;
+        $k = $dict->{'-'};
+        $standalone = 1;
       };
 
       # If override or not set yet, set the new default key
       if ($override || !defined $global->{'-'}) {
-	warn qq![MERGE] Override default key with "$k"! if DEBUG;
-	$global->{'-'} = $k;
+        warn qq![MERGE] Override default key with "$k"! if DEBUG;
+        $global->{'-'} = $k;
       };
 
       next if $standalone;
-    }
+    };
 
     # Insert key - if it not yet exists
     if (!$global->{$k}) {
 
       # Merge the tree
       if (ref $dict->{$k} eq 'HASH') {
-	$self->_merge($global->{$k} = {}, $dict->{$k}, $override);
+        $self->_merge($global->{$k} = {}, $dict->{$k}, $override);
       }
 
       # Store the plain value
       else {
-	$global->{$k} = _store($dict->{$k});
+        $global->{$k} = _store($dict->{$k});
       };
     }
 
@@ -408,7 +416,7 @@ sub _get_pref_key {
 
     for (ref $preferred ? @$preferred : $preferred) {
       if (DEBUG) {
-	warn qq![LOOKUP] Check preferred code key "$_"!;
+        warn qq![LOOKUP] Check preferred code key "$_"!;
       };
 
       last if $entry = $local->{$_};
@@ -420,7 +428,7 @@ sub _get_pref_key {
     foreach (@$index) {
 
       if (DEBUG) {
-	warn qq![LOOKUP] Check preferred array key "$_"!;
+        warn qq![LOOKUP] Check preferred array key "$_"!;
       };
 
       last if $entry = $local->{$_};
@@ -450,7 +458,7 @@ sub _get_pref_key {
 #
 #    for (ref $preferred ? @$preferred : $preferred) {
 #      if (DEBUG) {
-#	warn qq![LOOKUP] Check preferred code key "$_"!;
+#  warn qq![LOOKUP] Check preferred code key "$_"!;
 #      };
 #      last if $entry = $local->{$_};
 #    };
@@ -461,7 +469,7 @@ sub _get_pref_key {
 #    foreach (@$pref_key) {
 #
 #      if (DEBUG) {
-#	warn qq![LOOKUP] Check preferred array key "$_"!;
+#  warn qq![LOOKUP] Check preferred array key "$_"!;
 #      };
 #
 #      last if $entry = $local->{$_};
@@ -471,7 +479,7 @@ sub _get_pref_key {
 #  if ($local->{'-'}) {
 #    if (DEBUG) {
 #      unless (ref $local->{$local->{'-'}}) {
-#	warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
+#  warn '[LOOKUP] There is a default key "' . $local->{$local->{'-'}} . '"';
 #      };
 #    };
 #
@@ -481,6 +489,73 @@ sub _get_pref_key {
 #    }
 #  }
 #};
+
+
+# This is a temporary function just for testing
+sub _localize2 {
+  my $dict = shift;
+  my $key = [split('_', shift)];
+  return _localize2_lookup($dict, $key, 0);
+};
+
+sub _localize2_lookup {
+  my ($dict, $key, $level) = @_;
+
+  # Get the current input element to consume
+  my @keys = ($key->[$level]);
+
+  # Add preferred keys
+  if ($dict->{'_'}) {
+    push @keys, _localize2_get_pref_key($dict->{'_'});
+  };
+
+  # Add default key
+  if ($dict->{'-'}) {
+    push @keys, $dict->{'-'};
+  };
+
+  # Check all possibilities
+  for (my $pos = 0; $pos < scalar @keys; $pos++) {
+    if (my $match = $dict->{$keys[$pos]}) {
+
+      # The match is final
+      # TODO: May be a sub or a template
+      unless (ref $match) {
+
+        # Everything is cosumed - fine
+        return $match if $level == $#{$key};
+      }
+      else {
+
+        my $found = _localize2_lookup(
+          $match,
+          $key,
+
+          # The primary word was consumed
+          $pos ? $level : $level+1
+        );
+        return $found if $found;
+      };
+    };
+  };
+};
+
+# This is heavily simplified
+sub _localize2_get_pref_key {
+  my $index = shift or return ();
+
+  unless (ref $index) {
+    # todo template
+  }
+  elsif (ref $index eq 'CODE') {
+    my $pref = $index->(); # Todo: pass controller
+    return ref $pref ? @$pref : ($pref);
+  }
+  elsif (ref $index eq 'ARRAY') {
+    return @$index;
+  }
+  return ();
+};
 
 
 1;
@@ -783,12 +858,12 @@ To define default keys in I<short notation>, prepend a dash to each subkey in qu
     Lang => {
       _ => [qw/en de pl/],
       -en => {
-	de => 'German',
-	en => 'English'
+        de => 'German',
+        en => 'English'
       },
       de => {
-	de => 'Deutsch',
-	en => 'Englisch'
+        de => 'Deutsch',
+        en => 'Englisch'
       }
     }
   }
@@ -835,21 +910,24 @@ but this behaviour might change in the future.)
 
 =head2 Hints and Conventions
 
-L<Mojolicious::Plugin::Localize> let you decide, how to nest your dictionary entries.
-For internationalization purposes, it is a good idea to have the language key on the first
-level, so you can establish further entries relying on that structure (see, e.g., the example
-snippet in L<SYNOPSIS>).
+L<Mojolicious::Plugin::Localize> let you decide, how to nest
+your dictionary entries. For internationalization purposes,
+it is a good idea to have the language key on the first
+level, so you can establish further entries relying on that
+structure (see, e.g., the example snippet in L<SYNOPSIS>).
 
-Instead of passing default messages using the L<loc|/loc> helper, you should always
-define default dictionary entries.
+Instead of passing default messages using the L<loc|/loc> helper,
+you should always define default dictionary entries.
 
 Dictionary keys should always be lower case, and plugins,
-that provide their own dictionaries, should prefix their keys with a namespace
-(e.g. the plugin's name) in camel case,
+that provide their own dictionaries, should prefix their keys
+with a namespace (e.g. the plugin's name) in camel case,
 to prevent clashes with other dictionary entries.
-For example the C<welcome> message for this plugin should be named C<Localize_welcome>.
+For example the C<welcome> message for this plugin should
+be named C<Localize_welcome>.
 
-Template files can be registered as dictionary keys to be looked up for rendering.
+Template files can be registered as dictionary keys to be
+looked up for rendering.
 
   # Create dictionary keys for templates
   {
@@ -867,12 +945,14 @@ Template files can be registered as dictionary keys to be looked up for renderin
   # Lookup dictionary entry for rendering
   $c->render($c->loc('Template_start'), variant => 'mobile');
 
-=head1
 
-You can set the MOJO_LOCALIZE_DEBUG environment variable to get some
-advanced diagnostics information printed to STDERR.
+=head1 DEBUGGING
+
+You can set the C<MOJO_LOCALIZE_DEBUG> environment variable to get some
+advanced diagnostics information printed to C<STDERR>.
 
   MOJO_LOCALIZE_DEBUG=1
+
 
 =head1 AVAILABILITY
 
