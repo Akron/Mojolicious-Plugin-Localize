@@ -23,6 +23,7 @@ our $VERSION = '0.11';
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
 
+# Global dictionary hash
 our $global = {};
 
 # Register plugin
@@ -250,6 +251,7 @@ sub _lookup {
 
   # No primary key given
   else {
+
     # Empty entries are forcing preferred and default keys
     $level++;
   };
@@ -354,6 +356,7 @@ sub _lookup {
         return $found if $found;
       };
     };
+
     $pos++;
   };
 };
@@ -399,7 +402,9 @@ sub _get_pref_keys {
 
     return @{$index};
   };
-  return ();
+
+  # No preferred keys or invalid notation
+  return;
 };
 
 
@@ -444,19 +449,26 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
   # Call dictionary entries from templates
   %= loc 'welcome'
 
+  # If the user has a preferred locale of 'en',
+  # the output is 'Welcome to MojoLand!'
+
 
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Localize> is a localization framework for
 Mojolicious, heavily inspired by Mozilla's L<l20n|http://l20n.org/>.
 Instead of being a reimplementation it uses L<Mojo::Template> for string interpolation,
-L<Mojolicious::Plugin::Config> for distributed dictionaries and L<Helpers|Mojolicious/helper>
+L<Mojolicious::Plugin::Config> for dictionaries and L<helpers|Mojolicious/helper>
 for template functions.
 
 B<Warning!> This is early software and behaviour may change without notifications!
 
 
 =head1 METHODS
+
+L<Mojolicious::Plugin::Localize> inherits all methods
+from L<Mojolicious::Plugin> and implements the following
+new ones.
 
 =head2 register
 
@@ -484,7 +496,7 @@ using the C<resources> parameter.
 
 The plugin can be registered multiple times, and defined dictionaries will be merged.
 
-Already existing key definitions won't be overridden in that way,
+Already existing key definitions won't be overridden in that way
 unless an additional C<override> parameter is set to a C<true> value.
 Dictionary entries from resource files, on the other hand, will always override,
 so the order of the given array is of relevance.
@@ -498,7 +510,7 @@ with the key C<Localize> (loaded only on first registration).
 In addition to the listed helpers,
 L<Mojolicious::Plugin::Localize> loads further helpers by default,
 see L<num|Mojolicious::Plugin::Localize::Number> and
-L<locale|Mojolicious::Plugin::Localize::Locale>.
+L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
 
 
 =head2 loc
@@ -530,7 +542,6 @@ see L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
 
 Dictionaries can be loaded by registering the plugin either as a passed C<dict> value
 or in separated files using the C<resources> parameter.
-
 
 =head2 Notation
 
@@ -570,7 +581,7 @@ followed by further parameters as a hash).
 As you see above, values may fetch further dictionary entries using the L<loc|/loc> helper.
 To fetch entries from the dictionary using the L<loc|/loc> helper,
 the user has to pass the key structure in so-called I<short notation>, by adding
-underscores between all keys.
+underscores following they key's path.
 The short notation for the entry C<Bäume> in the first example is C<de_tree_pl>.
 
   %= loc 'de_tree_pl'
@@ -591,6 +602,9 @@ The following dictionary definitions are therefore equal:
   }
 
 There is no limitation for nesting or the order of dictionary entries.
+
+Keys need to contain alphanumeric characters only,
+as special characters are reserved for later use.
 
 
 =head2 Preferred Keys
@@ -634,7 +648,7 @@ reference.
 The first parameter passed to subroutines is the controller object,
 and the local variable C<$_> is set to the L<nested helper object|/localize>,
 which eases calls to, for example,
-the L<locale|Mojolicious::Plugin::Localize::locale> helper
+the L<localize.locale|Mojolicious::Plugin::Localize::locale> helper
 
   # The preferred key is based on the user agent's localization
   _ => sub { $_->locale }
@@ -673,11 +687,12 @@ They can be given in addition to preferred keys.
     }
   }
 
-In case the key C<welcome_de> is requested with the above dictionary established,
-the value C<Willkommen!> will be returned. But if the underspecified key C<welcome>
-is requested without a matching key on the final level, and the preferred key C<pl>
-isn't defined in another dictionary, the default key C<en> will be used instead,
-returning the value C<Welcome!>.
+In case the key C<welcome_de> is requested with the above dictionary
+established, the value C<Willkommen!> will be returned.
+But if the underspecified key C<welcome> is requested without a
+matching key on the final level, and the preferred key C<pl>
+isn't defined in another dictionary, the default key C<en> will
+be used instead, returning the value C<Welcome!>.
 
 Default keys can be alternatively marked with a leading dash symbol.
 
@@ -714,43 +729,13 @@ To define default keys in I<short notation>, prepend a dash to each subkey in qu
   }
 
 In rare occasions a L<loc|/loc> call in short notation has to force the
-usage of preferred or default keys over direct key access.
+usage of preferred or default keys over primary key access.
 For example, in the above dictionary a call to C<Lang_de>,
 expecting the value C<German>, will fail, as the C<de> will
 be consumed on the second level and will therefore be missing on the third level.
 To force the usage of the preferred or default keys on the second level,
 simply prepend another underscore to the second key and call
 C<Lang__de> with the expected result.
-
-
-=head2 Backtracking
-
-  {
-    _ => [qw/de fr en/],
-    de => {
-      bye => 'Auf Wiedersehen!'
-    },
-    fr => {
-      welcome => 'Bonjour!',
-      bye => 'Au revoir!'
-    },
-    -en => {
-      welcome => 'Welcome!',
-      bye => 'Good bye!'
-    }
-  }
-
-In case a key is not found in a nested structure using the L<loc|/loc> helper,
-the dictionary lookup will track back to the last branching default key.
-
-For example, if the system looks up the dictionary key C<welcome>,
-there is an existing entry for the preferred key C<de> on the first level,
-but the processing will stop, as no entry for C<welcome> can be found on the next level.
-The system will then track back one level and choose the default key C<en>
-instead, where an entry for C<welcome> can be found. The value C<Welcome!> will be returned.
-
-(The system won't test further preferred keys,
-but this behaviour might change in the future.)
 
 
 =head2 Hints and Conventions
@@ -789,14 +774,6 @@ looked up for rendering.
 
   # Lookup dictionary entry for rendering
   $c->render($c->loc('Template_start'), variant => 'mobile');
-
-
-=head1 DEBUGGING
-
-You can set the C<MOJO_LOCALIZE_DEBUG> environment variable to get some
-advanced diagnostics information printed to C<STDERR>.
-
-  MOJO_LOCALIZE_DEBUG=1
 
 
 =head1 AVAILABILITY

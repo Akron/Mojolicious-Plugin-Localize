@@ -1,4 +1,4 @@
-package Mojolicious::Plugin::Localize::Number;
+package Mojolicious::Plugin::Localize::Quantify;
 use Mojo::Base 'Mojolicious::Plugin';
 use Scalar::Util qw/looks_like_number/;
 
@@ -14,7 +14,7 @@ sub register {
 
   # Establish helper
   $mojo->helper(
-    num => sub {
+    quant => sub {
       my $c = shift;
       my $num = shift;
 
@@ -95,7 +95,7 @@ sub register {
 
 =head1 NAME
 
-Mojolicious::Plugin::Localize::Number - Localize Countable Expressions
+Mojolicious::Plugin::Localize::Quantify - Localize Quantifiable Expressions
 
 
 =head1 SYNOPSIS
@@ -103,21 +103,21 @@ Mojolicious::Plugin::Localize::Number - Localize Countable Expressions
   my $g_counter = 5;
 
   # Get singular and plural expression, depending on number
-  my $word = $c->num($g_counter, 'guest', 'guests');
+  my $word = $c->quant($g_counter, 'guest', 'guests');
 
   # In templates
-  %= num $g_counter, 'guest', 'guests'
+  %= quant $g_counter, 'guest', 'guests'
 
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::Localize::Number> helps you to get countable expressions
+L<Mojolicious::Plugin::Localize::Quantify> helps you to get countable expressions
 of words depending on the number of units (e.g. singular or plural expressions).
 
 
 =head1 METHODS
 
-L<Mojolicious::Plugin::Localize::Number> inherits all methods
+L<Mojolicious::Plugin::Localize::Quantify> inherits all methods
 from L<Mojolicious::Plugin> and implements the following
 new ones.
 
@@ -125,10 +125,10 @@ new ones.
 =head2 register
 
   # Mojolicious
-  $mojo->plugin('Localize::Number');
+  $mojo->plugin('Localize::Quantify');
 
   # Mojolicious::Lite
-  plugin 'Localize::Number';
+  plugin 'Localize::Quantify';
 
 Called when registering the plugin.
 The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
@@ -136,16 +136,16 @@ The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
 
 =head1 HELPERS
 
-=head2 num
+=head2 quant
 
   my $number = 3;
 
-  my $was = $c->num($number, 'was', 'were');
-  my $tree = $c->num($number, 'tree', 'trees');
+  my $was = $c->quant($number, 'was', 'were');
+  my $tree = $c->quant($number, 'tree', 'trees');
   print "There $was $number $tree.";
   # There were 3 trees.
 
-  my $count = $c->num($number, 'some', {
+  my $count = $c->quant($number, 'some', {
     0 => 'no',
     1 => 'one',
     2 => 'both',
@@ -157,7 +157,7 @@ The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
   # There were a few trees.
 
   # In templates
-  %= num $g_counter, 'guest', 'guests'
+  %= quant $g_counter, 'guest', 'guests'
 
 Return an expression based on a given number.
 
