@@ -18,7 +18,7 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -57,7 +57,7 @@ sub register {
     };
 
     # Load default helper
-    $mojo->plugin('Localize::Number');
+    $mojo->plugin('Localize::Quantify');
     $mojo->plugin('Localize::Locale');
 
     # Localization helper
@@ -509,7 +509,7 @@ with the key C<Localize> (loaded only on first registration).
 
 In addition to the listed helpers,
 L<Mojolicious::Plugin::Localize> loads further helpers by default,
-see L<num|Mojolicious::Plugin::Localize::Number> and
+see L<quant|Mojolicious::Plugin::Localize::Quantify> and
 L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
 
 
