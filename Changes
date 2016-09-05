@@ -1,5 +1,6 @@
 0.11 2016-09-05
         - Fixed backtracking using recursive lookup.
+        - Improved preferred and default key checking by making it lazy.
 
 0.10 2016-07-24
         - Improve support for Mojolicious 7.

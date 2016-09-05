@@ -75,6 +75,7 @@ is(${ app->loc->{welcome}->{de}}, 'Herzlich Willkommen!', 'Willkommen');
 is(app->loc->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl3)');
 
 is(app->loc('welcome', name => 'Peter'), 'Serdecznie witamy, Peter!', 'Polish');
+
 is(app->loc('welcome_de', name => 'Peter'), 'Herzlich Willkommen!', 'German');
 is(app->loc('welcome_en', name => 'Peter'), 'Welcome!', 'English');
 
@@ -152,6 +153,7 @@ plugin 'Localize' => {
 is(app->loc('greeting'), 'Serdecznie witamy, Michael! (polish)',
    'Polish');
 
+
 # Override preferred key
 plugin 'Localize' => {
   dict => {
@@ -164,6 +166,7 @@ plugin 'Localize' => {
 
 is(app->loc('greeting'), 'Welcome! Nice to meet you!',
    'English (default)');
+
 
 # Override default key
 plugin 'Localize' => {
@@ -245,14 +248,11 @@ is(app->loc('sorry'), 'I\'m very sorry!',
    'English (default)');
 is(app->loc('sorry_short'), 'I\'m sorry!',
    'English (default)');
-
 is(app->loc('sorry_de_short'), 'Tut mir leid!',
    'German short (direct)');
 is(app->loc('sorry_de'), 'Tut mir sehr leid!',
    'German short (direct)');
-
 is(app->loc('thx'), '', 'Nothing found');
-
 
 plugin Localize => {
   dict => {
@@ -281,9 +281,12 @@ plugin Localize => {
   }
 };
 
+
 is(app->loc('Nested_de_bye'), 'Auf Wiedersehen!', 'Nested de');
 is(app->loc('Nested_fr_bye'), 'Au revoir!', 'Nested fr');
 is(app->loc('Nested_en_bye'), 'Good bye!', 'Nested en');
+
+
 
 is(app->loc('Nested_fr_welcome'), 'Bonjour!', 'Nested fr');
 is(app->loc('Nested_en_welcome'), 'Welcome!', 'Nested en');
@@ -291,6 +294,10 @@ is(app->loc('Nested_de_welcome'), '', 'Nested de - not there');
 
 is(app->loc('Nested_welcome'), 'Bonjour!', 'Nested');
 is(app->loc('Nested_tree'), 'Baum', 'Nested');
+
+
+
+
 
 plugin Localize => {
   dict => {

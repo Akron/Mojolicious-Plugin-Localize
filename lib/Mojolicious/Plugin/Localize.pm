@@ -254,35 +254,54 @@ sub _lookup {
     $level++;
   };
 
-  # TODO: Make this lazy loaded!
-  # Add preferred keys
-  if ($dict->{'_'}) {
-    my @matches = _get_pref_keys($c, $dict->{'_'}, $stash);
-    if (DEBUG) {
-      warn '[LOOKUP] There are preferred keys "' . join(',', @matches) . '"';
-    };
-    push @keys, @matches;
-  };
-
-  # Add default key
-  if ($dict->{'-'}) {
-    my $match = $dict->{'-'};
-    if (DEBUG) {
-      warn '[LOOKUP] There is a default key "' . $match . '"';
-    };
-    push @keys, $match if $match;
-  };
-
-  # There may be items set multiple times
-  @keys = uniq @keys;
-
-
   if (DEBUG) {
     warn '[LOOKUP] Check keys: ' . join(',', @keys);
   };
 
   # Check all possibilities
-  for (my $pos = 0; $pos < scalar @keys; $pos++) {
+  my $pos = 0;
+  my $lazy = 0;
+
+  # Iterate over all possible keys
+  while () {
+
+    # No more keys
+    if (!$keys[$pos]) {
+
+      warn '[LOOKUP] No more keys - check lazily' if DEBUG;
+
+      # Stop processing
+      return if $lazy;
+
+      # Lazy load further keys
+      # Add preferred keys
+      if ($dict->{'_'}) {
+        my @matches = _get_pref_keys($c, $dict->{'_'}, $stash);
+        if (DEBUG) {
+          warn '[LOOKUP] There are preferred keys "' . join(',', @matches) . '"';
+        };
+        push @keys, @matches;
+      };
+
+      # Add default key
+      if ($dict->{'-'}) {
+        my $match = $dict->{'-'};
+        if (DEBUG) {
+          warn '[LOOKUP] There is a default key "' . $match . '"';
+        };
+        push @keys, $match if $match;
+      };
+
+      return unless $keys[$pos];
+
+      warn '[LOOKUP] Check non-manual keys ' . join(',', @keys) if DEBUG;
+
+      # There may be items set multiple times
+      @keys = uniq @keys;
+      $lazy = 1;
+    };
+
+    # Key has a match
     if (my $match = $dict->{$keys[$pos]}) {
 
       # Debug information
@@ -291,7 +310,6 @@ sub _lookup {
       };
 
       # The match is final
-      # TODO: May be a sub or a template
       if (!ref($match) || ref($match) eq 'SCALAR' || ref($match) eq 'CODE') {
 
         # Everything is cosumed - fine
@@ -336,6 +354,7 @@ sub _lookup {
         return $found if $found;
       };
     };
+    $pos++;
   };
 };
 

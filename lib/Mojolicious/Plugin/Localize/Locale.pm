@@ -16,23 +16,22 @@ sub register {
       # Already requested from stash
       if ($c->stash('localize.locale')) {
 
-	# Return cached values
-	return $c->stash('localize.locale') if @_ == 0;
+        # Return cached values
+        return $c->stash('localize.locale') if @_ == 0;
 
-	# Prepend override values
-	$c->stash('localize.locale' => my $lang = [
-	  uniq(implicate_supers(map {lc} @_), @{ $c->stash('localize.locale')})
-	]);
+        # Prepend override values
+        $c->stash('localize.locale' => my $lang = [
+          uniq(implicate_supers(map {lc} @_), @{ $c->stash('localize.locale')})
+        ]);
 
-	return $lang;
+        return $lang;
       };
 
       # Get languages from request headers
       my @langs = implicate_supers(
-	I18N::LangTags::Detect->http_accept_langs(
-	  $c->req->headers->accept_language
-	)
-      );
+        I18N::LangTags::Detect->http_accept_langs(
+          $c->req->headers->accept_language
+        ));
 
       # Prepend override values
       unshift(@langs, implicate_supers(map {lc} @_)) if @_ > 0;
@@ -110,9 +109,9 @@ Called when registering the plugin.
 The plugin is registered by L<Mojolicious::Plugin::Localize> by default.
 
 
-=head1 NESTED HELPERS
+=head1 HELPERS
 
-=head2 localize.locale
+=head2 localize->locale
 
   # Return the requested languages
   my $lang = $c->localize->locale;

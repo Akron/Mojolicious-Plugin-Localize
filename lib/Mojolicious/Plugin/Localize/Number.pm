@@ -36,49 +36,49 @@ sub register {
       # It's a bit more complicated ...
       if ($param) {
 
-	# Exact match found
-	return $param->{$num} if exists $param->{$num};
+        # Exact match found
+        return $param->{$num} if exists $param->{$num};
 
-	# Iterate over all parameters
-	foreach (sort keys %$param) {
-	  next unless $_ =~ $RANGE_RE;
+        # Iterate over all parameters
+        foreach (sort keys %$param) {
+          next unless $_ =~ $RANGE_RE;
 
-	  # 'Littler than' or 'greater than'
-	  if ($1) {
-	    if ($1 eq '<') {
-	      return $param->{$_} if $num < $2;
-	    }
-	    else {
-	      return $param->{$_} if $num > $2;
-	    };
-	  }
+          # 'Littler than' or 'greater than'
+          if ($1) {
+            if ($1 eq '<') {
+              return $param->{$_} if $num < $2;
+            }
+            else {
+              return $param->{$_} if $num > $2;
+            };
+          }
 
-	  # Range
-	  elsif ($3) {
-	    return $param->{$_} if $num >= $2 && $num <= $3;
-	  };
-	};
+          # Range
+          elsif ($3) {
+            return $param->{$_} if $num >= $2 && $num <= $3;
+          };
+        };
 
-	# Check for 'even' value
-	if ($num % 2 == 0) {
-	  return $param->{even} if exists $param->{even};
-	}
+        # Check for 'even' value
+        if ($num % 2 == 0) {
+          return $param->{even} if exists $param->{even};
+        }
 
-	# Check for 'odd' value
-	else {
-	  return $param->{odd} if exists $param->{odd};
-	  # Legacy support
-	  return $param->{uneven} if exists $param->{uneven};
-	};
+        # Check for 'odd' value
+        else {
+          return $param->{odd} if exists $param->{odd};
+          # Legacy support
+          return $param->{uneven} if exists $param->{uneven};
+        };
       };
 
       # Simple plural value
       if ($num > 1 || $num < -1) {
-	return $default_pl // $default;
+        return $default_pl // $default;
       }
       # Simple null value
       elsif ($num == 0) {
-	return $default_null;
+        return $default_null;
       };
 
       # Default value
