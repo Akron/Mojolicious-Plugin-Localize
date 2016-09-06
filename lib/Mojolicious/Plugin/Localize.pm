@@ -14,7 +14,7 @@ use List::MoreUtils 'uniq';
 # TODO: use Hash::Merge or Hash::Merge::Small
 # TODO: Use Mojo::Template directly
 # TODO: deal with:
-#       <%=numsep $g_count %> <%=num $g_count, 'guest', 'guests' %> online.'
+#       <%=numsep $g_count %> <%= quant $g_count, 'guest', 'guests' %> online.'
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
@@ -61,8 +61,6 @@ sub register {
     $mojo->plugin('Localize::Locale');
 
     # Localization helper
-    $mojo->helper(loc2 => \&_localize);
-
     $mojo->helper(
       loc => sub {
         my $c = shift;
@@ -82,6 +80,8 @@ sub register {
 
         # Store all other values in the stash
         my %stash = @_;
+
+        # Return dictionary entry or default entry
         return _lookup($c, \%stash, $global, $key, 0, \%stash) ||
           $default_entry // '';
       }
@@ -116,8 +116,13 @@ sub register {
   # Merge dictionary hashes
   foreach (@dict) {
     my $is_array = ref $_ && ref $_ eq 'ARRAY';
-    warn '[MERGE] Start merging' .
-      ($is_array ? (' of ' . $_->[1]) : '') if DEBUG;
+
+    if (DEBUG) {
+      warn '[MERGE] Start merging' .
+        ($is_array ? (' of ' . $_->[1]) : '');
+    };
+
+    # Merge to global dictionary
     $self->_merge($global, $is_array ? $_->[0] : $_, $param->{override});
   };
 };
@@ -161,13 +166,12 @@ sub _merge {
   # Iterate over all keys
   foreach my $k (keys %$dict) {
 
-    # warn qq![MERGE] Treat key "$k"! if DEBUG;
-
     # This is a short notation key
     if (index($k, '_') > 0) {
       warn qq![MERGE] Unflatten "$k"! if DEBUG;
+
+      # Unflatten short notation
       _unflatten(\$k, $dict);
-      # warn "... " . dumper $k if DEBUG;
     }
 
     # Set preferred key
@@ -175,9 +179,11 @@ sub _merge {
 
       # If override or not set yet, set the new preferred key
       if ($override || !defined $global->{_}) {
+
         warn qq![MERGE] Override "_"! if DEBUG;
         $global->{_} = $dict->{_};
       };
+
       next;
     };
 
@@ -185,7 +191,7 @@ sub _merge {
     if (index($k, '-') == 0) {
       my $standalone = 0;
 
-      warn qq![MERGE] Set a default key of "$k"! if DEBUG;
+      warn qq![MERGE] Try to set default key with "$k"! if DEBUG;
 
       # This is a prefixed default key
       if (length($k) > 1) {
@@ -201,6 +207,7 @@ sub _merge {
 
       # If override or not set yet, set the new default key
       if ($override || !defined $global->{'-'}) {
+
         warn qq![MERGE] Override default key with "$k"! if DEBUG;
         $global->{'-'} = $k;
       };
@@ -222,7 +229,7 @@ sub _merge {
       };
     }
 
-    # Merge key
+    # Merge key, when both are hashes
     elsif (ref($global->{$k}) eq ref($dict->{$k}) && ref($global->{$k}) eq 'HASH') {
       $self->_merge($global->{$k}, $dict->{$k}, $override);
     }
@@ -241,11 +248,11 @@ sub _lookup {
 
   # Get the current input element to consume
   my @keys;
-  if ($key->[$level]) {
-    @keys = ($key->[$level]);
+  if (my $primary = $key->[$level]) {
+    @keys = ($primary);
 
     if (DEBUG) {
-      warn '[LOOKUP] There is a primary key "' . $key->[$level] . '"';
+      warn qq![LOOKUP] There is a primary key "$primary"!;
     };
   }
 
@@ -254,10 +261,6 @@ sub _lookup {
 
     # Empty entries are forcing preferred and default keys
     $level++;
-  };
-
-  if (DEBUG) {
-    warn '[LOOKUP] Check keys: ' . join(',', @keys);
   };
 
   # Check all possibilities
@@ -269,8 +272,6 @@ sub _lookup {
 
     # No more keys
     if (!$keys[$pos]) {
-
-      warn '[LOOKUP] No more keys - check lazily' if DEBUG;
 
       # Stop processing
       return if $lazy;
@@ -342,6 +343,7 @@ sub _lookup {
       # No final match found - go on
       else {
 
+        # Call lookup recursively
         my $found = _lookup(
           $c,
           $stash,
@@ -357,6 +359,7 @@ sub _lookup {
       };
     };
 
+    # Get next key
     $pos++;
   };
 };
@@ -373,11 +376,6 @@ sub _get_pref_keys {
 
     my $key = $c->include(inline => $index, %$stash);
     $key = trim $key unless delete $stash->{no_trim};
-
-    if (DEBUG) {
-      warn qq![LOOKUP] Found preferred template key "$index" to "$key"!;
-    };
-
     return $key;
   }
 
@@ -386,20 +384,11 @@ sub _get_pref_keys {
 
     local $_ = $c->localize;
     my $pref = $index->($c);
-
-    if (DEBUG) {
-      warn qq![LOOKUP] Check preferred code key ! . join(',', @$pref);
-    };
-
     return ref $pref ? @$pref : ($pref);
   }
 
   # Preferred key is an array
   elsif (ref $index eq 'ARRAY') {
-    if (DEBUG) {
-      warn qq![LOOKUP] Check preferred array key "$_"!;
-    };
-
     return @{$index};
   };
 
@@ -510,7 +499,7 @@ with the key C<Localize> (loaded only on first registration).
 In addition to the listed helpers,
 L<Mojolicious::Plugin::Localize> loads further helpers by default,
 see L<quant|Mojolicious::Plugin::Localize::Quantify> and
-L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
+L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
 =head2 loc
@@ -535,7 +524,7 @@ Expects a dictionary key, an optional fallback message and optional stash values
 
 Helper object for nested helpers.
 L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpers,
-see L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
+see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
 =head1 DICTIONARIES
@@ -648,7 +637,7 @@ reference.
 The first parameter passed to subroutines is the controller object,
 and the local variable C<$_> is set to the L<nested helper object|/localize>,
 which eases calls to, for example,
-the L<localize.locale|Mojolicious::Plugin::Localize::locale> helper
+the L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale> helper
 
   # The preferred key is based on the user agent's localization
   _ => sub { $_->locale }

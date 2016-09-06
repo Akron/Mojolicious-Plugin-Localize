@@ -2,7 +2,6 @@ package Mojolicious::Plugin::Localize::Quantify;
 use Mojo::Base 'Mojolicious::Plugin';
 use Scalar::Util qw/looks_like_number/;
 
-# TODO: This may be better called "Quantification"!
 # From http://search.cpan.org/~toddr/Locale-Maketext-1.26/lib/Locale/Maketext.pod
 # >> The basic quant method that Locale::Maketext provides should be good for many languages. For some languages, it might be useful to modify it (or its constituent numerate method) to take a plural form in the two-argument call to quant (as in "[quant,_1,files]") if it's all-around easier to infer the singular form from the plural, than to infer the plural form from the singular. <<
 
@@ -67,8 +66,6 @@ sub register {
         # Check for 'odd' value
         else {
           return $param->{odd} if exists $param->{odd};
-          # Legacy support
-          return $param->{uneven} if exists $param->{uneven};
         };
       };
 
@@ -218,7 +215,7 @@ L<Mojolicious>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2016, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

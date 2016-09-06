@@ -60,7 +60,7 @@ Mojolicious::Plugin::Localize::Locale - Localize Based on Requested Locales
   plugin Localize => {
     dict => {
       welcome => {
-        _ => sub { $_->locale },
+        '_' => sub { $_->locale },
         -en => 'Welcome!',
         de => 'Willkommen!',
         fr => 'Bonjour!'
@@ -138,7 +138,7 @@ by the short name of their super languages.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2016, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

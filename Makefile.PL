@@ -16,7 +16,7 @@ WriteMakefile(
     'Mojolicious' => 5.27,
     'I18N::LangTags' => 0,
     'I18N::LangTags::Detect' => 0,
-    'List::MoreUtils' => 0
+    'List::MoreUtils' => 0.416
   },
   LICENSE      => 'artistic_2',
   META_MERGE   => {
