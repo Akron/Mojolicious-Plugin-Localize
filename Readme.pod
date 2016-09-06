@@ -95,7 +95,7 @@ with the key C<Localize> (loaded only on first registration).
 In addition to the listed helpers,
 L<Mojolicious::Plugin::Localize> loads further helpers by default,
 see L<quant|Mojolicious::Plugin::Localize::Quantify> and
-L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
+L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
 =head2 loc
@@ -120,7 +120,7 @@ Expects a dictionary key, an optional fallback message and optional stash values
 
 Helper object for nested helpers.
 L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpers,
-see L<localize.locale|Mojolicious::Plugin::Localize::Locale>.
+see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
 =head1 DICTIONARIES
@@ -233,7 +233,7 @@ reference.
 The first parameter passed to subroutines is the controller object,
 and the local variable C<$_> is set to the L<nested helper object|/localize>,
 which eases calls to, for example,
-the L<localize.locale|Mojolicious::Plugin::Localize::locale> helper
+the L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale> helper
 
   # The preferred key is based on the user agent's localization
   _ => sub { $_->locale }
