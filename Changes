@@ -1,3 +1,7 @@
+0.13 2016-09-07
+        - Removed dictionary returning function in loc helper.
+        - Added localize->dictionary helper.
+
 0.12 2016-09-06
         - Renamed M::P::Localize::Number to M::P::Localize::Quantify.
         - Renamed num() to quant().

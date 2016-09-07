@@ -14,7 +14,7 @@ $app->plugin(Config => {
 
 $app->plugin('Localize');
 
-is(${app->loc->{welcome}->{en}}, 'Welcome', 'Welcome');
+is(${app->localize->dictionary->{welcome}->{en}}, 'Welcome', 'Welcome');
 
 my $c = $app->build_controller;
 

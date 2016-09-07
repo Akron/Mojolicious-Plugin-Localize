@@ -18,7 +18,7 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -60,14 +60,13 @@ sub register {
     $mojo->plugin('Localize::Quantify');
     $mojo->plugin('Localize::Locale');
 
-    # Localization helper
+    # Lookup a dictionary key and return the value
     $mojo->helper(
       loc => sub {
         my $c = shift;
 
-        # Return complete dictionary in case no parameter is defined
-        # This is not documented and may change in further versions
-        return $global unless scalar @_;
+        # Nothing to look up
+        return ''  unless scalar @_;
 
         my $key = [split('_', shift)];
 
@@ -84,6 +83,16 @@ sub register {
         # Return dictionary entry or default entry
         return _lookup($c, \%stash, $global, $key, 0, \%stash) ||
           $default_entry // '';
+      }
+    );
+
+
+    # Return the dictionary reference
+    $mojo->helper(
+      'localize.dictionary' => sub {
+        # Return the complete dictionary in case no parameter is defined
+        # This is not documented and may change in further versions
+        return $global;
       }
     );
 
@@ -417,12 +426,12 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
   plugin  Localize => {
     dict => {
       _  => sub { $_->locale },
-      de => {
-        welcome => "Willkommen in <%=loc 'App_name_land' %>!",
+      -de => {
+        welcome => "Willkommen in <%=loc 'App_name' %>!",
         bye => 'Auf Wiedersehen!'
       },
-      -en => {
-        welcome => "Welcome to <%=loc 'App_name_land' %>!",
+      en => {
+        welcome => "Welcome to <%=loc 'App_name' %>!",
         bye => 'Good bye!'
       },
       App => {
@@ -435,11 +444,11 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
     }
   };
 
-  # Call dictionary entries from templates
+  # Lookup dictionary entries from templates
   %= loc 'welcome'
 
   # If the user has a preferred locale of 'en',
-  # the output is 'Welcome to MojoLand!'
+  # the output is 'Welcome to Mojolicious!'
 
 
 =head1 DESCRIPTION
@@ -518,11 +527,13 @@ Makes a dictionary lookup and returns a string.
 Expects a dictionary key, an optional fallback message and optional stash values.
 
 
-=head2 localize
+=head2 localize-E<gt>dictionary
 
-  $c->localize->locale('de');
+  print $c->localize->dictionary->{welcome}->{en};
 
-Helper object for nested helpers.
+Nested helper in the C<localize> namespace.
+Returns the merged dictionary hash.
+
 L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpers,
 see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 

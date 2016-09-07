@@ -13,12 +13,12 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
   plugin  Localize => {
     dict => {
       _  => sub { $_->locale },
-      de => {
-        welcome => "Willkommen in <%=loc 'App_name_land' %>!",
+      -de => {
+        welcome => "Willkommen in <%=loc 'App_name' %>!",
         bye => 'Auf Wiedersehen!'
       },
-      -en => {
-        welcome => "Welcome to <%=loc 'App_name_land' %>!",
+      en => {
+        welcome => "Welcome to <%=loc 'App_name' %>!",
         bye => 'Good bye!'
       },
       App => {
@@ -31,11 +31,11 @@ Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
     }
   };
 
-  # Call dictionary entries from templates
+  # Lookup dictionary entries from templates
   %= loc 'welcome'
 
   # If the user has a preferred locale of 'en',
-  # the output is 'Welcome to MojoLand!'
+  # the output is 'Welcome to Mojolicious!'
 
 
 =head1 DESCRIPTION
@@ -114,11 +114,13 @@ Makes a dictionary lookup and returns a string.
 Expects a dictionary key, an optional fallback message and optional stash values.
 
 
-=head2 localize
+=head2 localize-E<gt>dictionary
 
-  $c->localize->locale('de');
+  print $c->localize->dictionary->{welcome}->{en};
 
-Helper object for nested helpers.
+Nested helper in the C<localize> namespace.
+Returns the merged dictionary hash.
+
 L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpers,
 see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 

@@ -21,13 +21,14 @@ plugin 'Localize' => {
   }
 };
 
-is(${app->loc->{welcome}->{en}}, 'Welcome!', 'Welcome');
+my $d = app->localize->dictionary;
+is(${$d->{welcome}->{en}}, 'Welcome!', 'Welcome');
 
-is(ref app->loc->{welcome}->{_}, 'CODE', 'Subroutine');
-is(app->loc->{welcome}->{_}->()->[0], 'pl', 'Lang');
-is(app->loc->{welcome}->{_}->()->[1], 'en', 'Lang');
-is(app->loc->{welcome}->{_}->()->[2], 'de', 'Lang');
-ok(!exists app->loc->{welcome}->{de}, 'Kein Willkommen');
+is(ref $d->{welcome}->{_}, 'CODE', 'Subroutine');
+is($d->{welcome}->{_}->()->[0], 'pl', 'Lang');
+is($d->{welcome}->{_}->()->[1], 'en', 'Lang');
+is($d->{welcome}->{_}->()->[2], 'de', 'Lang');
+ok(!exists $d->{welcome}->{de}, 'Kein Willkommen');
 
 plugin Localize => {
   dict => {
@@ -37,9 +38,9 @@ plugin Localize => {
   }
 };
 
-is(${ app->loc->{welcome}->{en}}, 'Welcome!', 'Welcome');
-is(ref app->loc->{welcome}->{_}, 'CODE', 'Subroutine');
-is(${ app->loc->{welcome}->{de}}, 'Willkommen', 'Willkommen');
+is(${ $d->{welcome}->{en}}, 'Welcome!', 'Welcome');
+is(ref $d->{welcome}->{_}, 'CODE', 'Subroutine');
+is(${ $d->{welcome}->{de}}, 'Willkommen', 'Willkommen');
 
 plugin Localize => {
   dict => {
@@ -47,9 +48,9 @@ plugin Localize => {
   }
 };
 
-is(${ app->loc->{welcome}->{en}}, 'Welcome!', 'Welcome');
-is(${ app->loc->{welcome}->{de}}, 'Willkommen', 'Willkommen');
-is(app->loc->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl1)');
+is(${ $d->{welcome}->{en}}, 'Welcome!', 'Welcome');
+is(${ $d->{welcome}->{de}}, 'Willkommen', 'Willkommen');
+is($d->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl1)');
 
 plugin Localize => {
   dict => {
@@ -59,9 +60,9 @@ plugin Localize => {
   }
 };
 
-is(${ app->loc->{welcome}->{en} }, 'Welcome!', 'Welcome');
-is(${ app->loc->{welcome}->{de} }, 'Willkommen', 'Willkommen');
-is(app->loc->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl2)');
+is(${ $d->{welcome}->{en} }, 'Welcome!', 'Welcome');
+is(${ $d->{welcome}->{de} }, 'Willkommen', 'Willkommen');
+is($d->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl2)');
 
 plugin Localize => {
   dict => {
@@ -70,9 +71,9 @@ plugin Localize => {
   override => 1
 };
 
-is(${ app->loc->{welcome}->{en}}, 'Welcome!', 'Welcome');
-is(${ app->loc->{welcome}->{de}}, 'Herzlich Willkommen!', 'Willkommen');
-is(app->loc->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl3)');
+is(${ $d->{welcome}->{en}}, 'Welcome!', 'Welcome');
+is(${ $d->{welcome}->{de}}, 'Herzlich Willkommen!', 'Willkommen');
+is($d->{welcome}->{pl}, 'Serdecznie witamy, <%= stash "name" %>!', 'Willkommen (pl3)');
 
 is(app->loc('welcome', name => 'Peter'), 'Serdecznie witamy, Peter!', 'Polish');
 
@@ -153,6 +154,8 @@ plugin 'Localize' => {
 is(app->loc('greeting'), 'Serdecznie witamy, Michael! (polish)',
    'Polish');
 
+
+is(app->loc, '', 'Lookup helper no longer returns dictionary');
 
 # Override preferred key
 plugin 'Localize' => {
