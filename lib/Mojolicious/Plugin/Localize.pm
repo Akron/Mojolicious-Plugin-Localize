@@ -508,10 +508,10 @@ L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
   my $entry = $c->loc('welcome');
 
   %# Lookup a dictionary entry in templates
-  <%= loc 'welcome' %>
-  <%= loc 'welcome', 'Welcome to the site!' %>
-  <%= loc 'welcome', user => 'Peter' %>
-  <%= loc 'welcome', 'Welcome to the site!', user => 'Peter' %>
+  %= loc 'welcome'
+  %= loc 'welcome', 'Welcome to the site!'
+  %= loc 'welcome', user => 'Peter'
+  %= loc 'welcome', 'Welcome to the site!', user => 'Peter'
 
 Makes a dictionary lookup and returns a string.
 
@@ -554,7 +554,7 @@ or to a value.
 
   {
     en => {
-      welcome => 'Welcome!'
+      welcome => 'Welcome!',
       greeting => '<%= loc "en_welcome" %> Nice to meet you, <%= $user %>!'
     },
     de => {
@@ -655,7 +655,7 @@ Preferred keys in I<short notation> have a trailing underscore:
 
   # Set the preferred key in short notation:
   {
-    greeting_ => sub { $_->locale }
+    greeting_ => sub { $_->locale },
     greeting_en => 'Hello!',
     greeting_de => 'Hallo!'
   }
