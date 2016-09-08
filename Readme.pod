@@ -315,14 +315,18 @@ To define default keys in I<short notation>, prepend a dash to each subkey in qu
     }
   }
 
-In rare occasions a L<loc|/loc> call in short notation has to force the
-usage of preferred or default keys over primary key access.
-For example, in the above dictionary a call to C<Lang_de>,
+When looking up an entry in the dictionary tree,
+the consumption precedence is
+C<primary E<gt> preferred E<gt> default>.
+
+But in rare occasions a lookup has to force the
+usage of preferred or default keys over primary key access,
+for example, in the above dictionary a call to C<Lang_de>,
 expecting the value C<German>, will fail, as the C<de> will
-be consumed on the second level and will therefore be missing on the third level.
-To force the usage of the preferred or default keys on the second level,
-simply prepend another underscore to the second key and call
-C<Lang__de> with the expected result.
+be consumed on the second level and will therefore be missing on the third.
+To force the usage of the preferred or the default key on the second level,
+simply prepend another underscore to the second partial key
+(to consume an empty partial key) and call C<Lang__de> with the expected result.
 
 
 =head2 Hints and Conventions

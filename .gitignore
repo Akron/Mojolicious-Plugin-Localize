@@ -8,6 +8,8 @@ create-cpan.pl
 script*
 MYMETA*
 Makefile
+lib/Mojolicious/Plugin/Localize/Command/localize.pm
+lib/Mojolicious/Plugin/Localize/Command/generate/dictionary.pm
 pm_to_blib
 *.tar.gz
 *~
