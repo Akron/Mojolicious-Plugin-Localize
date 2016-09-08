@@ -18,7 +18,9 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.13';
+our $VERSION = '0.14';
+
+has 'log';
 
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
@@ -37,6 +39,8 @@ sub register {
   my (@dict, @resources);
   @dict      = ($param->{dict})       if $param->{dict};      # Hashes
   @resources = @{$param->{resources}} if $param->{resources}; # File names
+
+  $self->log($mojo->log);
 
   # Not yet initialized
   unless ($init) {
@@ -71,7 +75,7 @@ sub register {
         my $key = [split('_', shift)];
 
         if (DEBUG) {
-          warn '[LOOKUP] Search for "' . join('_',  @$key) . '"' ;
+          _debug($c->app, '[LOOKUP] Search for "' . join('_',  @$key) . '"');
         };
 
         # If a default entry is given, get it
@@ -114,7 +118,7 @@ sub register {
       if (-e $file) {
         if (my $dict = $config_loader->load($file, undef, $mojo)) {
           unshift @dict, [$dict, $file];
-          $mojo->log->debug(qq!Successfully loaded dictionary "$file"!);
+          _debug($mojo, qq!Successfully loaded dictionary "$file"!);
           next;
         };
       };
@@ -127,8 +131,11 @@ sub register {
     my $is_array = ref $_ && ref $_ eq 'ARRAY';
 
     if (DEBUG) {
-      warn '[MERGE] Start merging' .
-        ($is_array ? (' of ' . $_->[1]) : '');
+      _debug(
+        $mojo,
+        '[MERGE] Start merging' .
+          ($is_array ? (' of ' . $_->[1]) : '')
+        );
     };
 
     # Merge to global dictionary
@@ -177,7 +184,7 @@ sub _merge {
 
     # This is a short notation key
     if (index($k, '_') > 0) {
-      warn qq![MERGE] Unflatten "$k"! if DEBUG;
+      _debug($self, qq![MERGE] Unflatten "$k"!) if DEBUG;
 
       # Unflatten short notation
       _unflatten(\$k, $dict);
@@ -189,7 +196,7 @@ sub _merge {
       # If override or not set yet, set the new preferred key
       if ($override || !defined $global->{_}) {
 
-        warn qq![MERGE] Override "_"! if DEBUG;
+        _debug($self, qq![MERGE] Override "_"!) if DEBUG;
         $global->{_} = $dict->{_};
       };
 
@@ -200,7 +207,7 @@ sub _merge {
     if (index($k, '-') == 0) {
       my $standalone = 0;
 
-      warn qq![MERGE] Try to set default key with "$k"! if DEBUG;
+      _debug($self, qq![MERGE] Try to set default key with "$k"!) if DEBUG;
 
       # This is a prefixed default key
       if (length($k) > 1) {
@@ -217,7 +224,7 @@ sub _merge {
       # If override or not set yet, set the new default key
       if ($override || !defined $global->{'-'}) {
 
-        warn qq![MERGE] Override default key with "$k"! if DEBUG;
+        _debug($self, qq![MERGE] Override default key with "$k"!) if DEBUG;
         $global->{'-'} = $k;
       };
 
@@ -261,16 +268,11 @@ sub _lookup {
     @keys = ($primary);
 
     if (DEBUG) {
-      warn qq![LOOKUP] There is a primary key "$primary"!;
+      _debug($c->app, qq![LOOKUP] There is a primary key "$primary"!);
     };
-  }
+  };
 
   # No primary key given
-  else {
-
-    # Empty entries are forcing preferred and default keys
-    $level++;
-  };
 
   # Check all possibilities
   my $pos = 0;
@@ -282,6 +284,13 @@ sub _lookup {
     # No more keys
     if (!$keys[$pos]) {
 
+      if (DEBUG) {
+        _debug(
+          $c->app,
+          "[LOOKUP] There is no more key at position $pos on level [$level]"
+        );
+      };
+
       # Stop processing
       return if $lazy;
 
@@ -289,27 +298,33 @@ sub _lookup {
       # Add preferred keys
       if ($dict->{'_'}) {
         my @matches = _get_pref_keys($c, $dict->{'_'}, $stash);
-        if (DEBUG) {
-          warn '[LOOKUP] There are preferred keys "' . join(',', @matches) . '"';
+        if ($matches[0]) {
+          if (DEBUG) {
+            _debug(
+              $c->app,
+              qq![LOOKUP] But there are preferred keys "@matches"!
+            );
+          };
+          push @keys, @matches;
         };
-        push @keys, @matches;
       };
 
       # Add default key
       if ($dict->{'-'}) {
         my $match = $dict->{'-'};
         if (DEBUG) {
-          warn '[LOOKUP] There is a default key "' . $match . '"';
+          _debug($c->app, qq![LOOKUP] But there is a default key "$match"!);
         };
         push @keys, $match if $match;
       };
 
       return unless $keys[$pos];
 
-      warn '[LOOKUP] Check non-manual keys ' . join(',', @keys) if DEBUG;
-
       # There may be items set multiple times
       @keys = uniq @keys;
+
+      _debug($c->app, qq![LOOKUP] Check non-manual keys "@keys"!) if DEBUG;
+
       $lazy = 1;
     };
 
@@ -318,7 +333,10 @@ sub _lookup {
 
       # Debug information
       if (DEBUG) {
-        warn '[LOOKUP] Found entry for "' . $keys[$pos] . qq!" on level [$level]!;
+        _debug(
+          $c->app,
+          qq![LOOKUP] Found entry for "$keys[$pos]" on level [$level]!
+        );
       };
 
       # The match is final
@@ -329,20 +347,34 @@ sub _lookup {
 
           # Value is scalar
           if (ref $match eq 'SCALAR') {
-            warn '[LOOKUP] Found scalar value as "' . $$match . '"' if DEBUG;
+            if (DEBUG) {
+              _debug(
+                $c->app,
+                qq![LOOKUP] Found scalar value "$$match"!
+              );
+            };
             return $$match;
           }
 
           elsif (ref $match eq 'CODE') {
             my $value = $match->($c, %$stash);
-            warn qq![LOOKUP] Found subroutine value as "$value"! if DEBUG;
+            if (DEBUG) {
+              _debug(
+                $c->app,
+                qq![LOOKUP] Found subroutine value as "$value"!
+              );
+            };
             return $value;
           };
 
           my $value = $c->include(inline => $match, %$stash);
           $value = trim $value unless delete $stash->{no_trim};
-          warn qq![LOOKUP] Found template value as "$value"! if DEBUG;
-
+          if (DEBUG) {
+            _debug(
+              $c->app,
+              qq![LOOKUP] Found template value as "$value"!
+            );
+          };
           return $value;
         };
 
@@ -352,12 +384,19 @@ sub _lookup {
       # No final match found - go on
       else {
 
+        my $level_up = $level;
+
+        # If the primary key was consumed or not given, level up
+        if (!$pos || !$key->[$level]) {
+          $level_up++;
+          if (DEBUG) {
+            _debug($c->app, "[LOOKUP] Forward to level [$level_up]");
+          };
+        };
+
         # Call lookup recursively
         my $found = _lookup(
-          $c, $stash, $match, $key,
-
-          # The primary word was consumed
-          $pos ? $level : $level + 1
+          $c, $stash, $match, $key, $level_up
         );
 
         # Found something
@@ -367,7 +406,26 @@ sub _lookup {
 
     # Get next key
     $pos++;
+    if (DEBUG) {
+      _debug($c->app, "[LOOKUP] Forward to next key at position $pos");
+    };
   };
+};
+
+
+# Debug messages
+sub _debug {
+  my ($app, $msg) = @_;
+
+  # If the value is 2 - debug to stderr
+  if (DEBUG == 2) {
+    print STDERR "$msg\n";
+  }
+
+  # Otherwise debug to log
+  else {
+    $app->log->debug($msg);
+  }
 };
 
 

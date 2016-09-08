@@ -10,7 +10,9 @@ my $app = $t->app;
 
 $ENV{MOJO_LOCALIZE_DEBUG} = 0;
 
-my $languages = sub  { [qw/pl en de/] };
+my $lang = [qw/pl de en/];
+
+my $languages = sub  { $lang };
 
 plugin Localize => {
   dict => {
@@ -28,8 +30,15 @@ plugin Localize => {
   }
 };
 
-is(app->loc('Lang__de'), 'German', 'Force preferred or default key');
-is(app->loc('Lang__en'), 'English', 'Force preferred or default key');
+is(app->loc('Lang__de'), 'Deutsch', 'Force preferred key');
+is(app->loc('Lang__en'), 'Englisch', 'Force preferred key');
+
+$lang = undef;
+
+is(app->loc('Lang__de'), 'German', 'Force default key');
+is(app->loc('Lang__en'), 'English', 'Force default key');
+
+
 
 done_testing;
 __END__

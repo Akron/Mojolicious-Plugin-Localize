@@ -1,3 +1,7 @@
+0.14 2016-09-08
+        - Fixed path error for default and preferred values.
+        - Improved debugging.
+
 0.13 2016-09-07
         - Removed dictionary returning function in loc helper.
         - Added localize->dictionary helper.
