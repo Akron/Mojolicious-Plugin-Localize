@@ -1,3 +1,6 @@
+0.15 2016-09-09
+        - Initial attempt for dictionary template generator.
+
 0.14 2016-09-08
         - Fixed path error for default and preferred values.
         - Improved debugging.

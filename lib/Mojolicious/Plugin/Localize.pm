@@ -18,7 +18,7 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 has 'log';
 
@@ -63,6 +63,9 @@ sub register {
     # Load default helper
     $mojo->plugin('Localize::Quantify');
     $mojo->plugin('Localize::Locale');
+
+    # Add 'generate dictionary' command
+    push @{$mojo->commands->namespaces}, __PACKAGE__ . '::Command';
 
     # Lookup a dictionary key and return the value
     $mojo->helper(
