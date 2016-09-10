@@ -8,10 +8,15 @@ has usage       => sub { shift->extract_usage };
 
 our $SPECIAL = '!SPECIAL!';
 
+use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
+
+has [qw/input output controller/];
+
 sub run {
   my $self = shift;
-  my $input = shift;
-  my $output = shift;
+
+  $self->input(shift);
+  $self->output(shift);
 
   my $app = $self->app;
 
@@ -19,14 +24,14 @@ sub run {
 
   print '# Dictionary template generated ' . Mojo::Date->new(time) . "\n\n";
 
-  my $c = $app->build_controller;
+  $self->controller($app->build_controller);
 
   # Setting an unlikely locale
-  $c->stash('localize.locale' => [$SPECIAL]);
+  $self->controller->stash('localize.locale' => [$SPECIAL]);
 
   # Recursive investigate the dictionary
   print "{\n";
-  _investigate($c, $dict, [], 0, $input, $output);
+  $self->_investigate($dict, [], 0);
   print "};\n";
 
   # Iterate over all dictionary entries.
@@ -40,17 +45,18 @@ sub run {
 };
 
 sub _investigate {
-  my ($c, $dict, $path, $level, $input, $output) = @_;
+  my ($self, $dict, $path, $level) = @_;
 
   if (!ref $dict || ref $dict eq 'SCALAR' || ref $dict eq 'CODE') {
 
     # Check elements of the path
     my @elements = @{$path}[0..$level - 1];
 
-    return unless grep /\*/, @elements;
+    # Key is not localed
+    return unless grep /[\*\+]/, @elements;
 
     # Join the missing key
-    my $key = join('_', map { $_ eq '*' ? $output : $_ } @elements);
+    my $key = join('_', map { $_ eq '*' ? $self->output : $_ } @elements);
 
     print '  # ' . quote($key) . ' => ';
 
@@ -78,26 +84,26 @@ sub _investigate {
   };
 
   # Set local $_ to nested helber for preferred subroutines
-  local $_ = $c->localize;
+  local $_ = $self->controller->localize;
 
   # Define the example branch
   my $locale_example;
 
   # There is a locale branch
-  if ($dict->{_} && $dict->{_}->($c)->[0] eq $SPECIAL) {
+  if ($dict->{_} && $dict->{_}->($self->controller)->[0] eq $SPECIAL) {
 
     # Define the output for the path
     $path->[$level] = '*';
 
     # The output already exists
-    if ($dict->{$output}) {
-      $path->[$level] = $output;
-      $locale_example = $output;
-    }
+    # if (exists $dict->{$output}) {
+      #$path->[$level] = '+';
+      #   $locale_example = $output;
+    # };
 
     # The input example branch exists
-    elsif ($dict->{$input}) {
-      $locale_example = $input;
+    if ($dict->{$self->input}) {
+      $locale_example = $self->input;
     }
 
     # A default branch exists
@@ -111,14 +117,16 @@ sub _investigate {
       return;
     };
 
+    if (DEBUG) {
+      warn '[DICT] Locale branch at path ' .
+        quote(_key($path, $level + 1)) . ' and level [' . $level . ']';
+    };
+
     # Follow the locale
-    _investigate(
-      $c,
+    $self->_investigate(
       $dict->{$locale_example},
       $path,
-      $level + 1,
-      $input,
-      $output
+      $level + 1
     );
   };
 
@@ -126,10 +134,15 @@ sub _investigate {
   # FOLLOW ALL KEYS!
   foreach (grep { $_ ne '-' && $_ ne '_' } keys %$dict) {
     $path->[$level] = $_;
-    _investigate($c, $dict->{$_}, $path, $level + 1, $input, $output);
+    $self->_investigate($dict->{$_}, $path, $level + 1);
   };
 };
 
+
+# Return the current key
+sub _key {
+  return join('_', @{$_[0]}[0..$_[1] - 1])
+};
 
 1;
 

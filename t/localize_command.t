@@ -10,6 +10,8 @@ use lib '../lib';
 my $t = Test::Mojo->new;
 my $app = $t->app;
 
+$ENV{MOJO_LOCALIZE_DEBUG} = 1;
+
 use_ok('Mojolicious::Plugin::Localize::Command::dictionary');
 my $dict = Mojolicious::Plugin::Localize::Command::dictionary->new;
 $dict->app($app);
@@ -80,7 +82,8 @@ my $template = stdout_from(
 );
 
 like($template, qr/\"welcome_fr\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
-
+like($template, qr/\"fr_bye\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
+unlike($template, qr/\"thankyou_fr\"/, 'thankyou_fr');
 
 done_testing;
 __END__
