@@ -3,12 +3,19 @@ use Mojolicious::Lite;
 use Mojolicious::Commands;
 use Data::Dumper;
 use Test::Output qw/:stdout :stderr :functions/;
+use Mojo::Util 'slurp';
 use Test::More;
 use Test::Mojo;
+use File::Temp 'tempdir';
+
 use lib '../lib';
 
 my $t = Test::Mojo->new;
 my $app = $t->app;
+$app->moniker('localizetest');
+
+my $dir = tempdir CLEANUP => 1;
+chdir $dir;
 
 $ENV{MOJO_LOCALIZE_DEBUG} = 0;
 
@@ -16,7 +23,7 @@ use_ok('Mojolicious::Plugin::Localize::Command::localize');
 my $dict = Mojolicious::Plugin::Localize::Command::localize->new;
 $dict->app($app);
 
-like($dict->usage, qr/usage: perl app\.pl localize/, 'Usage');
+like($dict->usage, qr/Usage: APPLICATION/, 'Usage');
 
 $app->plugin('Localize' => {
   dict => {
@@ -81,18 +88,23 @@ stdout_like(
 #   # # fr_user_community => ''
 # }
 
-my $template = stdout_from(
+my $stdout = stdout_from(
   sub {
     local $ENV{HARNESS_ACTIVE} = 0;
 
     # Get a template for french based on the english dictionary
-    $cmds->run('localize', 'en', 'fr');
+    $cmds->run('localize', 'fr', '--base' => 'en');
   }
 );
+
+like($stdout, qr/localizetest_fr\.dict/, 'Correctly written');
+
+my $template = slurp $dict->rel_file('localizetest_fr.dict');
 
 like($template, qr/\"welcome_fr\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"fr_bye\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
 unlike($template, qr/\"thankyou_fr\"/, 'thankyou_fr');
+
 
 # Reset dictionary
 %{$app->localize->dictionary} = ();
@@ -126,29 +138,40 @@ $app->plugin('Localize' => {
   }
 });
 
+my $filename = 'mydict';
+
 # Use en as base
-$template = stdout_from(
+$stdout = stdout_from(
   sub {
     local $ENV{HARNESS_ACTIVE} = 0;
 
     # Get a template for french based on the english dictionary
-    $cmds->run('localize', 'en', 'fr');
+    $cmds->run('localize', 'fr', '--base' => 'en', '--output' => $filename);
   }
 );
+
+like($stdout, qr/mydict/, 'Correctly written');
+$template = slurp $dict->rel_file($filename);
 
 like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
 unlike($template, qr/\"fr_thankyou\"/, 'No merci');
 
+$filename = 'mydict2';
+
 # Use en as base
-$template = stdout_from(
+$stdout = stdout_from(
   sub {
     local $ENV{HARNESS_ACTIVE} = 0;
 
     # Get a template for french based on the english dictionary
-    $cmds->run('localize', 'de', 'fr');
+    $cmds->run('localize', 'fr', '-b' => 'de', '-o' => $filename);
   }
 );
+
+
+like($stdout, qr/mydict2/, 'Correctly written');
+$template = slurp $dict->rel_file($filename);
 
 like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Willkommen!\"/, 'welcome_fr');
 like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');

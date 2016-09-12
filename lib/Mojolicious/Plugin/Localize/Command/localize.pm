@@ -2,6 +2,7 @@ package Mojolicious::Plugin::Localize::Command::localize;
 use Mojo::Base 'Mojolicious::Command';
 use Mojo::Util qw/quote/;
 use Mojo::Date;
+use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 
 has description => 'Generate dictionary files for Localize';
 has usage       => sub { shift->extract_usage };
@@ -10,30 +11,32 @@ our $SPECIAL = '!SPECIAL!'; # Special locale
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
 
-has [qw/input output controller/];
+has [qw/base lang controller/];
 
 
 # Generate dictionary template
 sub run {
-  my $self = shift;
+  my ($self, $lang, @args) = @_;
 
-  $self->input(shift);
-  $self->output(shift);
+  $self->lang($lang);
+
+  my $app = $self->app;
+
+  GetOptionsFromArray \@args,
+    'b|base=s'   => \(my $base = 'en'),
+    'o|output=s' => \(my $output = '');
 
   # Unknown command
-  unless ($self->input && $self->output) {
-    print $self->usage and return;
-  };
+  print $self->usage and return unless $self->lang;
+
+  # Set base language
+  $self->base($base);
 
   # Initialize key store
   $self->{keys} = {};
 
-  my $app = $self->app;
-
   # Get generated dictionary
   my $dict = $app->localize->dictionary;
-
-  print '# Dictionary template generated ' . Mojo::Date->new(time) . "\n\n";
 
   # Set controller
   $self->controller($app->build_controller);
@@ -44,9 +47,17 @@ sub run {
   # Recursive investigate the dictionary
   $self->_investigate($dict, [], 0);
 
-  print "{\n";
-  $self->_filter->_print;
-  print "};\n";
+  my $data = '# Dictionary template generated ';
+  $data .= Mojo::Date->new(time);
+  $data .= "\n\n{\n" . $self->_filter->_print . "};\n";
+
+  $output ||= $app->moniker . '_' . $self->lang . '.dict';
+
+  # Generate file
+  if ($self->write_rel_file($output, $data)) {
+    say quote($output) . " written.\n";
+  };
+  print "\n";
 };
 
 
@@ -85,13 +96,13 @@ sub _investigate {
   if ($dict->{_} && $dict->{_}->($self->controller)->[0] eq $SPECIAL) {
 
     # The output already exists
-    if (exists $dict->{$self->output}) {
+    if (exists $dict->{$self->lang}) {
       $path->[$level] = '+';
-      $locale_example = $self->output;
+      $locale_example = $self->lang;
 
       if (DEBUG) {
         warn '[DICT] Locale branch at path ' .
-          quote(_key($path, $level + 1)) . ' and level [' . $level . ']';
+          quote(_key($path, $level + 1)) . " and level [$level]";
       };
 
       # Follow the locale
@@ -106,8 +117,8 @@ sub _investigate {
     $path->[$level] = '*';
 
     # The input example branch exists
-    if ($dict->{$self->input}) {
-      $locale_example = $self->input;
+    if ($dict->{$self->base}) {
+      $locale_example = $self->base;
     }
 
     # A default branch exists
@@ -173,31 +184,43 @@ sub _filter {
 sub _print {
   my $self = shift;
 
-  my $out = $self->output;
+  my $out = $self->lang;
+
+  my %new_keys;
+  while (my ($key, $value) = each %{$self->{keys}}) {
+    $key =~ s/\*/$out/g;
+    $new_keys{$key} = $value;
+  };
+
+  my $template = '';
 
   # Iterate over all stored keys
-  while (my ($key, $value) = each %{$self->{keys}}) {
+  foreach my $key (sort { lc($a) cmp lc($b) } (keys %new_keys)) {
 
-    $key =~ s/\*/$out/g;
-    print '  # ' . quote($key) . ' => ';
+    $template .= '  # ' . quote($key) . ' => ';
+
+    my $value = $new_keys{$key};
 
     # Print example entry
     if (!ref $value) {
-      print quote($value) . ",\n";
+      $template .= quote($value) . ",";
     }
 
     # Print scalar value
     elsif (ref $value eq 'SCALAR') {
-      print '\\' . quote($$value) . ",\n";
+      $template .= '\\' . quote($$value) . ",";
     }
 
     # Print sub
     elsif (ref $value eq 'CODE') {
-      print "sub { ... },\n";
+      $template .= "sub { ... },";
     };
+
+    # Add newline
+    $template .= "\n"
   };
 
-  return $self;
+  return $template;
 };
 
 
@@ -215,9 +238,15 @@ Mojolicious::Plugin::Localize::Command::localize - Generate dictionary files for
 
 =head1 SYNOPSIS
 
-  usage: perl app.pl localize <base_lang> <out_lang>
+  Usage: APPLICATION localize <lang> [OPTIONS]
 
-    perl app.lp localize en pl
+    perl app.pl localize pl
+
+  Options:
+    -h, --help            Show this summary of available options
+    -b, --base <lang>     Base language locale, defaults to "en"
+    -o, --output <file>   Output file for dictionary, defaults to
+                          the moniker, the locale and the extension 'dict'
 
 
 =head1 DESCRIPTION
@@ -256,7 +285,7 @@ Given the following merged dictionary of an application:
 To create a translation template for the locale french based on all
 entries of the english locale, call ...
 
-  $ perl app.pl localize en fr
+  $ perl app.pl localize fr --base en
 
 The created dictionary template in short notation will look like this:
 

@@ -34,8 +34,6 @@ our $global = {};
 sub register {
   my ($self, $mojo, $param) = @_;
 
-  # state $global   = {};
-  # state $template = {};
   state $init = 0;
 
   my (@dict, @resources);
