@@ -51,7 +51,7 @@ sub run {
   $data .= Mojo::Date->new(time);
   $data .= "\n\n{\n" . $self->_filter->_print . "};\n";
 
-  $output ||= $app->moniker . '_' . $self->lang . '.dict';
+  $output ||= $app->moniker . '.' . $self->lang . '.dict';
 
   # Generate file
   if ($self->write_rel_file($output, $data)) {

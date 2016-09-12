@@ -97,9 +97,9 @@ my $stdout = stdout_from(
   }
 );
 
-like($stdout, qr/localizetest_fr\.dict/, 'Correctly written');
+like($stdout, qr/localizetest\.fr\.dict/, 'Correctly written');
 
-my $template = slurp $dict->rel_file('localizetest_fr.dict');
+my $template = slurp $dict->rel_file('localizetest.fr.dict');
 
 like($template, qr/\"welcome_fr\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"fr_bye\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
