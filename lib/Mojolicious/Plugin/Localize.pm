@@ -598,6 +598,16 @@ L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpe
 see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
+=head1 COMMANDS
+
+=head2 localize
+
+  $ perl app.pl localize en pl
+
+Generate a new dictionary template for a certain locale based on an existing dictionary.
+See L<Mojolicious::Plugin::Localize::Command::localize|localize> for further information.
+
+
 =head1 DICTIONARIES
 
 Dictionaries can be loaded by registering the plugin either as a passed C<dict> value
