@@ -204,7 +204,53 @@ unlike($template, qr/\"fr_welcome\"/, 'welcome_fr');
 like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');
 like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\\\"Nutzer\"/, 'fr_bye');
 
-# TODO: Check for keys like +_welcome_*_hui
+
+# Reset dictionary
+%{$app->localize->dictionary} = ();
+
+
+# Check for multiple locales in a path - although this is really bad design!
+$app->plugin('Localize' => {
+  dict => {
+    _ => sub { $_->locale },
+    de => {
+      welcome => 'Willkommen!',
+      tree => {
+        _ => sub { $_->locale },
+        en => 'Tree',
+      }
+    },
+    -en => {
+      welcome => 'Welcome!',
+      tree => {
+        _ => sub { $_->locale },
+        -en => 'Tree',
+        de => 'Baum'
+      }
+    }
+  }
+});
+
+$filename = 'mydict4';
+
+# Use en as base
+$stdout = stdout_from(
+  sub {
+    local $ENV{HARNESS_ACTIVE} = 0;
+
+    # Get a template for french based on the english dictionary
+    $cmds->run('localize', 'de', '-b' => 'en', '-o' => $filename);
+  }
+);
+
+like($stdout, qr/mydict4/, 'Correctly written');
+$template = slurp $dict->rel_file($filename);
+
+like($template, qr/\"de_tree_de\"/, 'de_tree_de');
+unlike($template, qr/\"en_tree_de/, 'en_tree_de');
+
+is($app->loc('tree'), 'Tree', 'Baum');
+
 
 
 done_testing;
