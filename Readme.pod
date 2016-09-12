@@ -4,7 +4,7 @@
 
 =head1 NAME
 
-Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
+Mojolicious::Plugin::Localize - Localization for Mojolicious
 
 
 =head1 SYNOPSIS
@@ -70,7 +70,7 @@ new ones.
       }
     },
     override  => 1,
-    resources => ['french.dict', 'polish.dict']
+    resources => ['myapp.fr.dict', 'myapp.pl.dict']
   });
 
 Called when registering the plugin.
@@ -123,6 +123,16 @@ Returns the merged dictionary hash.
 
 L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpers,
 see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
+
+
+=head1 COMMANDS
+
+=head2 localize
+
+  $ perl app.pl localize en pl
+
+Generate a new dictionary template for a certain locale based on an existing dictionary.
+See L<Mojolicious::Plugin::Localize::Command::localize|localize> for further information.
 
 
 =head1 DICTIONARIES

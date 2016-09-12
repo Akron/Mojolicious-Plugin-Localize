@@ -475,7 +475,7 @@ __END__
 
 =head1 NAME
 
-Mojolicious::Plugin::Localize - Localization Framework for Mojolicious
+Mojolicious::Plugin::Localize - Localization for Mojolicious
 
 
 =head1 SYNOPSIS
@@ -541,7 +541,7 @@ new ones.
       }
     },
     override  => 1,
-    resources => ['french.dict', 'polish.dict']
+    resources => ['myapp.fr.dict', 'myapp.pl.dict']
   });
 
 Called when registering the plugin.
