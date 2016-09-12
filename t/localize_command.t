@@ -178,6 +178,32 @@ like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye'
 like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\\\"Nutzer\"/, 'fr_bye');
 unlike($template, qr/\"fr_thankyou\"/, 'No merci');
 
+$app->plugin('Localize' => {
+  dict => {
+    fr_welcome => 'Bienvenue!'
+  }
+});
+
+
+$filename = 'mydict3';
+
+# Use en as base
+$stdout = stdout_from(
+  sub {
+    local $ENV{HARNESS_ACTIVE} = 0;
+
+    # Get a template for french based on the english dictionary
+    $cmds->run('localize', 'fr', '-b' => 'de', '-o' => $filename);
+  }
+);
+
+like($stdout, qr/mydict3/, 'Correctly written');
+$template = slurp $dict->rel_file($filename);
+
+unlike($template, qr/\"fr_welcome\"/, 'welcome_fr');
+like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');
+like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\\\"Nutzer\"/, 'fr_bye');
+
 # TODO: Check for keys like +_welcome_*_hui
 
 
