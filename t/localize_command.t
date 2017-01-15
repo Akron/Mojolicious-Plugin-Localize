@@ -3,7 +3,6 @@ use Mojolicious::Lite;
 use Mojolicious::Commands;
 use Data::Dumper;
 use Test::Output qw/:stdout :stderr :functions/;
-use Mojo::Util 'slurp';
 use Test::More;
 use Test::Mojo;
 use File::Temp 'tempdir';
@@ -99,7 +98,7 @@ my $stdout = stdout_from(
 
 like($stdout, qr/localizetest\.fr\.dict/, 'Correctly written');
 
-my $template = slurp $dict->rel_file('localizetest.fr.dict');
+my $template = $dict->rel_file('localizetest.fr.dict')->slurp;
 
 like($template, qr/\"welcome_fr\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"fr_bye\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
@@ -151,7 +150,7 @@ $stdout = stdout_from(
 );
 
 like($stdout, qr/mydict/, 'Correctly written');
-$template = slurp $dict->rel_file($filename);
+$template = $dict->rel_file($filename)->slurp;
 
 like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
@@ -171,7 +170,7 @@ $stdout = stdout_from(
 
 
 like($stdout, qr/mydict2/, 'Correctly written');
-$template = slurp $dict->rel_file($filename);
+$template = $dict->rel_file($filename)->slurp;
 
 like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Willkommen!\"/, 'welcome_fr');
 like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');
@@ -198,7 +197,7 @@ $stdout = stdout_from(
 );
 
 like($stdout, qr/mydict3/, 'Correctly written');
-$template = slurp $dict->rel_file($filename);
+$template = $dict->rel_file($filename)->slurp;
 
 unlike($template, qr/\"fr_welcome\"/, 'welcome_fr');
 like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');
@@ -244,7 +243,7 @@ $stdout = stdout_from(
 );
 
 like($stdout, qr/mydict4/, 'Correctly written');
-$template = slurp $dict->rel_file($filename);
+$template = $dict->rel_file($filename)->slurp;
 
 like($template, qr/\"de_tree_de\"/, 'de_tree_de');
 unlike($template, qr/\"en_tree_de/, 'en_tree_de');

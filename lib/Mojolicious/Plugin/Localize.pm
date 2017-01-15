@@ -848,6 +848,16 @@ looked up for rendering.
   $c->render($c->loc('Template_start'), variant => 'mobile');
 
 
+=head1 TODO
+
+=over 2
+
+=item
+
+Support for L<CLDR|https://metacpan.org/pod/Locale::CLDR>
+
+=back
+
 =head1 AVAILABILITY
 
   https://github.com/Akron/Mojolicious-Plugin-Localize

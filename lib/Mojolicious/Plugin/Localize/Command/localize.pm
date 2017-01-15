@@ -4,6 +4,9 @@ use Mojo::Util qw/quote/;
 use Mojo::Date;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 
+# TODO: Probably do:
+# http://irclog.perlgeek.de/mojo/2016-09-22#i_13257554
+
 has description => 'Generate dictionary files for Localize';
 has usage       => sub { shift->extract_usage };
 
@@ -342,7 +345,7 @@ L<Mojolicious>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2016, L<Nils Diewald||http://nils-diewald.de>.
+Copyright (C) 2014-2017, L<Nils Diewald||http://nils-diewald.de>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.
