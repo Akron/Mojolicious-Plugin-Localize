@@ -20,7 +20,7 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 has 'log';
 
@@ -865,7 +865,7 @@ Support for L<CLDR|https://metacpan.org/pod/Locale::CLDR>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2016, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2018, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

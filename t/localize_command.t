@@ -51,6 +51,15 @@ $app->plugin('Localize' => {
     },
     fr => {
       hello => 'Bonjour!'
+    },
+    Q => {
+      _ => sub { 'example1' },
+      example1 => {
+        query => 'Baum'
+      },
+      example2 => {
+        query => 'Garten'
+      }
     }
   }
 });
@@ -103,7 +112,6 @@ my $template = $dict->rel_file('localizetest.fr.dict')->slurp;
 like($template, qr/\"welcome_fr\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"fr_bye\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
 unlike($template, qr/\"thankyou_fr\"/, 'thankyou_fr');
-
 
 # Reset dictionary
 %{$app->localize->dictionary} = ();

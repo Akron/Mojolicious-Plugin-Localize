@@ -68,14 +68,13 @@ get '/' => sub {
 $t->get_ok('/')->status_is(200)->content_is("Welcome!\n");
 $t->get_ok('/' => { 'Accept-Language' => 'de-DE, en-US, en' })->status_is(200)->content_is("Willkommen!\n");
 $t->get_ok('/' => { 'Accept-Language' => 'xx, fr, de-DE, en-US, en' })->status_is(200)->content_is("Bonjour!\n");
+$t->get_ok('/' => { 'Accept-Language' => 'DE, en-US, en' })->status_is(200)->content_is("Willkommen!\n");
 
 $t->get_ok('/en/')->status_is(200)->content_is("Welcome!\n");
 $t->get_ok('/de/')->status_is(200)->content_is("Willkommen!\n");
 $t->get_ok('/fr/')->status_is(200)->content_is("Bonjour!\n");
 
 $t->get_ok('/xx/')->status_is(200)->content_is("Welcome!\n");
-
-
 
 
 done_testing;

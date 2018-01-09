@@ -1,5 +1,6 @@
-0.16 2017-01-15
+0.16 2018-01-09
         - Remove usage of deprecated slurp function.
+        - Fix localization branch detection in localize command.
 
 0.15 2016-09-12
         - Added dictionary template generator.

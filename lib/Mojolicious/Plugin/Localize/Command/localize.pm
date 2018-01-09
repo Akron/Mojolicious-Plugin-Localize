@@ -96,7 +96,12 @@ sub _investigate {
   my $locale_example;
 
   # There is a locale branch
-  if ($dict->{_} && $dict->{_}->($self->controller)->[0] eq $SPECIAL) {
+  my $loc_act;
+  if (($loc_act = $dict->{_}) &&
+        (ref($loc_act) eq 'CODE') &&
+        ($loc_act = $dict->{_}->($self->controller)) &&
+        (ref($loc_act) eq 'ARRAY') &&
+        ($loc_act->[0] eq $SPECIAL)) {
 
     # The output already exists
     if (exists $dict->{$self->lang}) {
