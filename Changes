@@ -1,3 +1,6 @@
+0.17 2018-05-23
+        - Fix treatment of empty loc(undef) requests.
+
 0.16 2018-01-09
         - Remove usage of deprecated slurp function.
         - Fix localization branch detection in localize command.

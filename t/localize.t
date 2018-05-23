@@ -298,8 +298,10 @@ is(app->loc('Nested_de_welcome'), '', 'Nested de - not there');
 is(app->loc('Nested_welcome'), 'Bonjour!', 'Nested');
 is(app->loc('Nested_tree'), 'Baum', 'Nested');
 
-
-
+# Check empty requests
+is(app->loc(), '', 'Nothing');
+is(app->loc(undef), '', 'Undef');
+is(app->loc(undef, undef, undef), '', 'Undefs');
 
 
 plugin Localize => {

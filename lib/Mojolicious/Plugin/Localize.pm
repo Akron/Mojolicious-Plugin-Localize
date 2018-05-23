@@ -20,7 +20,7 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 has 'log';
 
@@ -73,7 +73,7 @@ sub register {
         my $c = shift;
 
         # Nothing to look up
-        return ''  unless scalar @_;
+        return ''  unless scalar @_ && $_[0];
 
         my $key = [split('_', shift)];
 
