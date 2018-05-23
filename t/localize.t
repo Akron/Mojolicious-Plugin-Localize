@@ -303,6 +303,14 @@ is(app->loc(), '', 'Nothing');
 is(app->loc(undef), '', 'Undef');
 is(app->loc(undef, undef, undef), '', 'Undefs');
 
+plugin Localize => {
+  dict => {
+    ampersand => '<%= "Cool" %> & <%= "not cool" %>'
+  }
+};
+
+is(app->loc('ampersand'), 'Cool & not cool', 'No escaping');
+
 
 plugin Localize => {
   dict => {

@@ -13,7 +13,7 @@ WriteMakefile(
     'Test::More' => 0
   },
   PREREQ_PM => {
-    'Mojolicious' => 5.27,
+    'Mojolicious' => 7.14,
     'I18N::LangTags' => 0,
     'I18N::LangTags::Detect' => 0,
     'List::MoreUtils' => 0.416
