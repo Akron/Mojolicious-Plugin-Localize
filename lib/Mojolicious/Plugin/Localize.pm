@@ -370,7 +370,7 @@ sub _lookup {
             return $value;
           };
 
-          my $value = $c->include(inline => $match, %$stash);
+          my $value = $c->render_to_string(inline => $match, %$stash);
           $value = trim $value unless delete $stash->{no_trim};
           if (DEBUG) {
             _debug(
@@ -441,7 +441,7 @@ sub _get_pref_keys {
   # Preferred key is a template
   unless (ref $index) {
 
-    my $key = $c->include(inline => $index, %$stash);
+    my $key = $c->render_to_string(inline => $index, %$stash);
     $key = trim $key unless delete $stash->{no_trim};
     return $key;
   }
