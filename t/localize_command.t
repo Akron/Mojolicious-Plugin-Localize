@@ -176,8 +176,20 @@ $stdout = stdout_from(
   }
 );
 
+like($stdout, qr/mydict2\" written/, 'Correctly written');
 
-like($stdout, qr/mydict2/, 'Correctly written');
+# Do it again - but the file exists already
+my $stderr = stderr_from(
+  sub {
+    local $ENV{HARNESS_ACTIVE} = 0;
+
+    # Get a template for french based on the english dictionary
+    $cmds->run('localize', 'ro', '-b' => 'de', '-o' => $filename);
+  }
+);
+
+like($stderr, qr/mydict2\" already exists and is not/, 'Not overwritten');
+
 $template = $dict->rel_file($filename)->slurp;
 
 like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Willkommen!\"/, 'welcome_fr');

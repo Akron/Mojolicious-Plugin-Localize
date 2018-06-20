@@ -57,7 +57,10 @@ sub run {
   $output ||= $app->moniker . '.' . $self->lang . '.dict';
 
   # Generate file
-  if ($self->write_rel_file($output, $data)) {
+  if (-e $output) {
+    warn quote($output) . " already exists and is not overwritten.\n\n"
+  }
+  elsif ($self->write_rel_file($output, $data)) {
     say quote($output) . " written.\n";
   };
   print "\n";
@@ -350,7 +353,7 @@ L<Mojolicious>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2017, L<Nils Diewald||http://nils-diewald.de>.
+Copyright (C) 2014-2018, L<Nils Diewald||http://nils-diewald.de>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.
