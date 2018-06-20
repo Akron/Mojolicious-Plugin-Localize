@@ -14,6 +14,7 @@ WriteMakefile(
   },
   PREREQ_PM => {
     'Mojolicious' => 7.14,
+    'Test::Output' => 1.031,
     'I18N::LangTags' => 0,
     'I18N::LangTags::Detect' => 0,
     'List::MoreUtils' => 0.416
