@@ -1,6 +1,6 @@
 package Mojolicious::Plugin::Localize::Command::localize;
 use Mojo::Base 'Mojolicious::Command';
-use Mojo::Util qw/quote/;
+use Mojo::Util qw/quote encode/;
 use Mojo::Date;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 
@@ -60,7 +60,7 @@ sub run {
   if (-e $output) {
     warn quote($output) . " already exists and is not overwritten.\n\n"
   }
-  elsif ($self->write_rel_file($output, $data)) {
+  elsif ($self->write_rel_file($output, encode('UTF-8', $data))) {
     say quote($output) . " written.\n";
   };
   print "\n";

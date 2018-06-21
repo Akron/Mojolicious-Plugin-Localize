@@ -33,9 +33,9 @@ $app->plugin('Localize' => {
     },
     thankyou => {
       _ => sub { $_->locale },
-      en => 'Thank you!',
-      de => 'Danke!',
-      fr => 'Merci!'
+      en => '»Thank you!«',
+      de => '»Danke!«',
+      fr => '»Merci!«'
     },
     _ => sub { $_->locale },
     de => {
@@ -122,14 +122,14 @@ $app->plugin('Localize' => {
     _ => sub { $_->locale },
     de => {
       welcome => 'Willkommen!',
-      thankyou => 'Danke!'
+      thankyou => '»Danke!«'
     },
     fr => {
-      thankyou => 'Merci!'
+      thankyou => '»Merci!«'
     },
     -en => {
       welcome => 'Welcome!',
-      thankyou => 'Thank you!',
+      thankyou => '»Thank you!«',
     },
     MyPlugin => {
       bye => {
@@ -211,12 +211,12 @@ $stdout = stdout_from(
   sub {
     local $ENV{HARNESS_ACTIVE} = 0;
 
-    # Get a template for french based on the english dictionary
+    # Get a template for french based on the german dictionary
     $cmds->run('localize', 'fr', '-b' => 'de', '-o' => $filename);
   }
 );
 
-like($stdout, qr/mydict3/, 'Correctly written');
+like($stdout, qr/mydict3\" written/, 'Correctly written');
 $template = $dict->rel_file($filename)->slurp;
 
 unlike($template, qr/\"fr_welcome\"/, 'welcome_fr');
@@ -271,6 +271,41 @@ unlike($template, qr/\"en_tree_de/, 'en_tree_de');
 is($app->loc('tree'), 'Tree', 'Baum');
 
 
+# Reset dictionary
+%{$app->localize->dictionary} = ();
+
+# Use synopsis dictionary
+$app->plugin('Localize' => {
+  dict => {
+    _ => sub { $_->locale },
+    -en => {
+      thankyou => '»Thank you!«',
+    }
+  }
+});
+
+$filename = 'mydict5';
+
+# Use en as base
+$stdout = stdout_from(
+  sub {
+    local $ENV{HARNESS_ACTIVE} = 0;
+
+    # Get a template for french based on the english dictionary
+    $cmds->run('localize', 'fr', '-b' => 'en', '-o' => $filename);
+  }
+);
+
+like($stdout, qr/mydict5\" written/, 'Correctly written');
+$template = $dict->rel_file($filename)->slurp;
+
+# Reset dictionary
+%{$app->localize->dictionary} = ();
+
+# Check for correct encoding of created file
+$app->plugin('Localize' => {
+  resources => [$dict->rel_file($filename)]
+});
 
 done_testing;
 __END__

@@ -1,6 +1,7 @@
 package Mojolicious::Plugin::Localize;
 use Mojo::Base 'Mojolicious::Plugin';
-use Mojo::Util qw/trim/;
+use Mojo::Util qw/trim decode/;
+use Mojo::File qw/path/;
 use Mojolicious::Plugin::Config;
 use File::Spec::Functions 'file_name_is_absolute';
 use List::MoreUtils 'uniq';
@@ -20,7 +21,7 @@ use List::MoreUtils 'uniq';
 # TODO: Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 has 'log';
 
@@ -116,7 +117,12 @@ sub register {
 
     # Load files
     foreach my $file (uniq @resources) {
+
       $file = $home->rel_file($file) unless file_name_is_absolute $file;
+
+      if (DEBUG) {
+        _debug($mojo, "Load dictionary $file");
+      };
 
       if (-e $file) {
         if (my $dict = $config_loader->load($file, undef, $mojo)) {

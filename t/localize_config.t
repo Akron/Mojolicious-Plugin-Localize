@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
-use lib '../lib';
 use Mojolicious::Lite;
 use Test::More;
 use Test::Mojo;
 use Data::Dumper;
+use utf8;
 
 my $t = Test::Mojo->new;
 my $app = $t->app;
@@ -32,5 +32,6 @@ $app->plugin('Localize' => {
 delete $c->stash->{'localize.locale'};
 is($c->loc('welcome_de'), 'Willkommen', 'Welcome (de)');
 is($c->loc('welcome_pl'), 'Serdecznie witamy', 'Welcome (pl)');
+is($c->loc('welcome_bg'), 'добре дошъл', 'Welcome (pl)');
 
 done_testing;
