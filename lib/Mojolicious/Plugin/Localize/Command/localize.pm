@@ -4,8 +4,12 @@ use Mojo::Util qw/quote encode/;
 use Mojo::Date;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 
-# TODO: Probably do:
-# http://irclog.perlgeek.de/mojo/2016-09-22#i_13257554
+# TODO:
+#   Probably do:
+#   http://irclog.perlgeek.de/mojo/2016-09-22#i_13257554
+
+# TODO:
+#   Do not write scalar references as scalar references!
 
 has description => 'Generate dictionary files for Localize';
 has usage       => sub { shift->extract_usage };
@@ -219,7 +223,7 @@ sub _print {
 
     # Print scalar value
     elsif (ref $value eq 'SCALAR') {
-      $template .= '\\' . quote($$value) . ",";
+      $template .= quote($$value) . ",";
     }
 
     # Print sub

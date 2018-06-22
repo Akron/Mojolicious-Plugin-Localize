@@ -109,8 +109,8 @@ like($stdout, qr/localizetest\.fr\.dict/, 'Correctly written');
 
 my $template = $dict->rel_file('localizetest.fr.dict')->slurp;
 
-like($template, qr/\"welcome_fr\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
-like($template, qr/\"fr_bye\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
+like($template, qr/\"welcome_fr\"\s*=\>\s*\"Welcome!\"/, 'welcome_fr');
+like($template, qr/\"fr_bye\"\s*=\>\s*\"Good bye!\"/, 'fr_bye');
 unlike($template, qr/\"thankyou_fr\"/, 'thankyou_fr');
 
 # Reset dictionary
@@ -160,8 +160,8 @@ $stdout = stdout_from(
 like($stdout, qr/mydict/, 'Correctly written');
 $template = $dict->rel_file($filename)->slurp;
 
-like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Welcome!\"/, 'welcome_fr');
-like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Good bye!\"/, 'fr_bye');
+like($template, qr/\"fr_welcome\"\s*=\>\s*\"Welcome!\"/, 'welcome_fr');
+like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\"Good bye!\"/, 'fr_bye');
 unlike($template, qr/\"fr_thankyou\"/, 'No merci');
 
 $filename = 'mydict2';
@@ -192,9 +192,9 @@ like($stderr, qr/mydict2\" already exists and is not/, 'Not overwritten');
 
 $template = $dict->rel_file($filename)->slurp;
 
-like($template, qr/\"fr_welcome\"\s*=\>\s*\\\"Willkommen!\"/, 'welcome_fr');
-like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');
-like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\\\"Nutzer\"/, 'fr_bye');
+like($template, qr/\"fr_welcome\"\s*=\>\s*\"Willkommen!\"/, 'welcome_fr');
+like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\"Auf Wiedersehen!\"/, 'fr_bye');
+like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\"Nutzer\"/, 'fr_bye');
 unlike($template, qr/\"fr_thankyou\"/, 'No merci');
 
 $app->plugin('Localize' => {
@@ -220,8 +220,8 @@ like($stdout, qr/mydict3\" written/, 'Correctly written');
 $template = $dict->rel_file($filename)->slurp;
 
 unlike($template, qr/\"fr_welcome\"/, 'welcome_fr');
-like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\\\"Auf Wiedersehen!\"/, 'fr_bye');
-like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\\\"Nutzer\"/, 'fr_bye');
+like($template, qr/\"MyPlugin_bye_fr\"\s*=\>\s*\"Auf Wiedersehen!\"/, 'fr_bye');
+like($template, qr/\"MyPlugin_user_fr\"\s*=\>\s*\"Nutzer\"/, 'fr_bye');
 
 
 # Reset dictionary

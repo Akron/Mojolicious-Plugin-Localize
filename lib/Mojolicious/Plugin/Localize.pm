@@ -277,7 +277,7 @@ sub _lookup {
     @keys = ($primary);
 
     if (DEBUG) {
-      _debug($c->app, qq![LOOKUP] There is a primary key "$primary"!);
+      _debug($c->app, qq![LOOKUP] There is a primary key "$primary" at input level [$level]!);
     };
   };
 
@@ -296,7 +296,7 @@ sub _lookup {
       if (DEBUG) {
         _debug(
           $c->app,
-          "[LOOKUP] There is no more key at position $pos on level [$level]"
+          "[LOOKUP] There is no more key at position $pos on input level [$level]"
         );
       };
 
@@ -344,7 +344,7 @@ sub _lookup {
       if (DEBUG) {
         _debug(
           $c->app,
-          qq![LOOKUP] Found entry for "$keys[$pos]" on level [$level]!
+          qq![LOOKUP] Found entry for "$keys[$pos]" on input level [$level]!
         );
       };
 
@@ -399,7 +399,7 @@ sub _lookup {
         if (!$pos || !$key->[$level]) {
           $level_up++;
           if (DEBUG) {
-            _debug($c->app, "[LOOKUP] Forward to level [$level_up]");
+            _debug($c->app, "[LOOKUP] Forward to input level [$level_up]");
           };
         };
 
@@ -614,6 +614,26 @@ See L<Mojolicious::Plugin::Localize::Command::localize|localize> for further inf
 
 =head1 DICTIONARIES
 
+  {
+    dict => {
+      _ => sub { $_->locale },
+      -en => {
+        welcome => 'Welcome!'
+      },
+      de => {
+        welcome => 'Willkommen!'
+      }
+    },
+    resources => ['myapp.fr.dict']
+  };
+
+  # myapp.fr.dict
+  {
+    fr => {
+      welcome => 'Bonjour!'
+    }
+  };
+
 Dictionaries can be loaded by registering the plugin either as a passed C<dict> value
 or in separated files using the C<resources> parameter.
 
@@ -622,13 +642,13 @@ or in separated files using the C<resources> parameter.
   {
     en => {
       tree => {
-        sg => 'Tree',
-        pl => 'Trees'
+        singular => 'Tree',
+        plural => 'Trees'
     },
     de => {
       tree => {
-        sg => 'Baum',
-        pl => 'Bäume'
+        singular => 'Baum',
+        plural => 'Bäume'
       }
     }
   }
@@ -648,17 +668,18 @@ or to a value.
     }
   }
 
-Values may be strings, L<Mojo::Template> strings (with default configuration),
+Values L<Mojo::Template> strings (with default configuration),
 or code references (with the controller object passed when evaluating,
-followed by further parameters as a hash).
+followed by further parameters as a hash). In case a string is passed as a scalar
+reference, it won't be interpolated as a L<Mojo::Template>.
 
 As you see above, values may fetch further dictionary entries using the L<loc|/loc> helper.
 To fetch entries from the dictionary using the L<loc|/loc> helper,
 the user has to pass the key structure in so-called I<short notation>, by adding
 underscores following they key's path.
-The short notation for the entry C<Bäume> in the first example is C<de_tree_pl>.
+The short notation for the entry C<Bäume> in the first example is C<de_tree_plural>.
 
-  %= loc 'de_tree_pl'
+  %= loc 'de_tree_plural'
   %# 'Bäume'
 
 The short notation can also be used to add new dictionary entries
@@ -669,13 +690,15 @@ The following dictionary definitions are therefore equal:
     de => {
       welcome => 'Willkommen!'
     }
-  }
+  };
 
+  # or
   {
     de_welcome => 'Willkommen!'
-  }
+  };
 
-There is no limitation for nesting or the order of dictionary entries.
+There is no limitation for nesting of dictionary entries.
+The order in a dictionary is irrelevant as well.
 
 Keys need to contain alphanumeric characters only,
 as special characters are reserved for later use.
@@ -757,7 +780,7 @@ They can be given in addition to preferred keys.
       _   => 'pl',
       '-' => 'en',
       en  => 'Welcome!',
-      de  => 'Welcome!'
+      de  => 'Willkommen!'
     }
   }
 
@@ -774,7 +797,7 @@ Default keys can be alternatively marked with a leading dash symbol.
     welcome => {
       _   => 'pl',
       -en => 'Welcome!',
-      de  => 'Welcome!'
+      de  => 'Willkommen!'
     }
   }
 

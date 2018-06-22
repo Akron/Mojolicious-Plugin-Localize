@@ -12,6 +12,8 @@ $ENV{MOJO_LOCALIZE_DEBUG} = 0;
 
 my $languages = sub  { [qw/pl en de/] };
 
+if (0) {
+
 plugin 'Localize' => {
   dict => {
     welcome => {
@@ -397,5 +399,28 @@ SKIP: {
 };
 
 is(app->loc('welcome2', number => 2000), 'Welcome, guest #2000', 'Function');
+
+# Reset dictionary
+%{app->localize->dictionary} = ();
+
+};
+
+
+# Check prefered key problem
+plugin 'Localize' => {
+  dict => {
+    _ => [qw/de en/],
+    en => {
+      example => {
+        -short => 'Example',
+        desc => 'Example sentence'
+      }
+    },
+    'de_example_-short' => 'Beispiel'
+  }
+};
+
+# is(app->loc('example_short'), 'Beispiel', 'Example check');
+is(app->loc('example'), 'Beispiel', 'Example check');
 
 done_testing;
