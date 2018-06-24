@@ -8,9 +8,6 @@ use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 #   Probably do:
 #   http://irclog.perlgeek.de/mojo/2016-09-22#i_13257554
 
-# TODO:
-#   Do not write scalar references as scalar references!
-
 has description => 'Generate dictionary files for Localize';
 has usage       => sub { shift->extract_usage };
 
@@ -164,7 +161,19 @@ sub _investigate {
 
   # FOLLOW ALL KEYS!
   foreach (grep { $_ ne '-' && $_ ne '_' } keys %$dict) {
-    $path->[$level] = $_;
+
+    # The key is a default key
+    if ($dict->{'-'} && $_ eq $dict->{'-'}) {
+
+      # Prefix key value with default prefix
+      $path->[$level] = '-' . $_;
+    }
+
+    # Set key value in path
+    else {
+      $path->[$level] = $_;
+    };
+
     $self->_investigate($dict->{$_}, $path, $level + 1);
   };
 };

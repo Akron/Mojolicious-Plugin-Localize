@@ -5,6 +5,7 @@ use Data::Dumper;
 use Test::Output qw/:stdout :stderr :functions/;
 use Test::More;
 use Test::Mojo;
+use Mojo::Util qw/decode encode/;
 use File::Temp 'tempdir';
 
 use lib '../lib';
@@ -23,6 +24,8 @@ my $dict = Mojolicious::Plugin::Localize::Command::localize->new;
 $dict->app($app);
 
 like($dict->usage, qr/Usage: APPLICATION/, 'Usage');
+
+my ($cmds, $stdout, $template, $filename);
 
 $app->plugin('Localize' => {
   dict => {
@@ -69,7 +72,8 @@ is_deeply(
   [qw/Mojolicious::Command Mojolicious::Plugin::Localize::Command/],
   'Namespaces'
 );
-my $cmds = $app->commands;
+
+$cmds = $app->commands;
 
 stdout_like(
   sub {
@@ -96,7 +100,7 @@ stdout_like(
 #   # # fr_user_community => ''
 # }
 
-my $stdout = stdout_from(
+$stdout = stdout_from(
   sub {
     local $ENV{HARNESS_ACTIVE} = 0;
 
@@ -107,7 +111,7 @@ my $stdout = stdout_from(
 
 like($stdout, qr/localizetest\.fr\.dict/, 'Correctly written');
 
-my $template = $dict->rel_file('localizetest.fr.dict')->slurp;
+$template = $dict->rel_file('localizetest.fr.dict')->slurp;
 
 like($template, qr/\"welcome_fr\"\s*=\>\s*\"Welcome!\"/, 'welcome_fr');
 like($template, qr/\"fr_bye\"\s*=\>\s*\"Good bye!\"/, 'fr_bye');
@@ -145,7 +149,7 @@ $app->plugin('Localize' => {
   }
 });
 
-my $filename = 'mydict';
+$filename = 'mydict';
 
 # Use en as base
 $stdout = stdout_from(
@@ -284,6 +288,7 @@ $app->plugin('Localize' => {
   }
 });
 
+
 $filename = 'mydict5';
 
 # Use en as base
@@ -306,6 +311,43 @@ $template = $dict->rel_file($filename)->slurp;
 $app->plugin('Localize' => {
   resources => [$dict->rel_file($filename)]
 });
+
+like(decode('utf8',$template), qr/"»Thank you!«"/, 'Fine encoding');
+
+# Reset dictionary
+%{$app->localize->dictionary} = ();
+
+# Always mark default entries
+$app->plugin('Localize' => {
+  dict => {
+      _ => sub { $_->locale },
+      en => {
+        title => {
+          -short => 'Sojolicious',
+          desc => 'A federated social web toolkit'
+        }
+      }
+    }
+});
+
+$filename = 'mydict6';
+
+# Use 'en' as base and respect default keys
+$stdout = stdout_from(
+  sub {
+    local $ENV{HARNESS_ACTIVE} = 0;
+
+    # Get a template for french based on the english dictionary
+    $cmds->run('localize', 'fr', '-b' => 'en', '-o' => $filename);
+  }
+);
+
+like($stdout, qr/mydict6\" written/, 'Correctly written');
+$template = $dict->rel_file($filename)->slurp;
+
+like($template, qr!# "fr_title_desc" => "A federated social web toolkit"!, 'desc');
+like($template, qr!# "fr_title_-short" => "Sojolicious"!, 'desc');
+
 
 done_testing;
 __END__

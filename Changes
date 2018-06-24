@@ -1,8 +1,9 @@
-0.18 2018-06-22
+0.18 2018-06-24
         - Fix encoding of generated dictionary templates.
         - Fix dependency of Test::Output.
         - Do not generate scalar references in dictionary templates,
           so there is a possibility to create template strings.
+        - Prefix default keys in dictionary templates.
 
 0.17 2018-05-23
         - Fix treatment of empty loc(undef) requests.
