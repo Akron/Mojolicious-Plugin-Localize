@@ -808,6 +808,31 @@ To define default keys in I<short notation>, prepend a dash to each subkey in qu
     'welcome_de'  => 'Willkomen!'
   }
 
+Preferred and default keys are specific to subtrees.
+That means in the following dictionary C<loc('title')>
+will return the string C<My Sojolicious> for the locale C<en>
+and nothing for the locale C<de>, as no matching path is found.
+In case there is a list of locales like C<de,en>, the call will
+trigger backtracking and return C<My Sojolicious> as well.
+
+  {
+    _ => sub { $_->locale }
+    en => {
+      title => {
+        -short => 'My Sojolicious',
+        desc => 'A federated social web toolkit'
+      }
+    },
+    de => {
+      title => {
+        short => 'Mein Sojolicious',
+        desc => 'Ein Werkzeugkasten für das Social Web'
+      }
+    }
+  }
+
+To return C<Mein Sojolicious> in case of C<loc('title')> for the locale
+C<de>, the second C<short> key needs to be prefixed as well.
 
 =head2 Forcing Preferred and Default Keys
 

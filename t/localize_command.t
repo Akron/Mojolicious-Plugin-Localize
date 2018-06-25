@@ -323,7 +323,7 @@ $app->plugin('Localize' => {
       _ => sub { $_->locale },
       en => {
         title => {
-          -short => 'Sojolicious',
+          -short => 'My Sojolicious',
           desc => 'A federated social web toolkit'
         }
       }
@@ -346,7 +346,7 @@ like($stdout, qr/mydict6\" written/, 'Correctly written');
 $template = $dict->rel_file($filename)->slurp;
 
 like($template, qr!# "fr_title_desc" => "A federated social web toolkit"!, 'desc');
-like($template, qr!# "fr_title_-short" => "Sojolicious"!, 'desc');
+like($template, qr!# "fr_title_-short" => "My Sojolicious"!, 'desc');
 
 
 done_testing;
