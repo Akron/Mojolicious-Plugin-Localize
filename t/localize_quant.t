@@ -1,5 +1,4 @@
 #!usr/bin/env perl
-use lib '../lib';
 use Mojolicious::Lite;
 use Test::More;
 use Test::Mojo;

@@ -8,8 +8,6 @@ use Test::Mojo;
 use Mojo::Util qw/decode encode/;
 use File::Temp 'tempdir';
 
-use lib '../lib';
-
 my $t = Test::Mojo->new;
 my $app = $t->app;
 $app->moniker('localizetest');
@@ -206,7 +204,6 @@ $app->plugin('Localize' => {
     fr_welcome => 'Bienvenue!'
   }
 });
-
 
 $filename = 'mydict3';
 

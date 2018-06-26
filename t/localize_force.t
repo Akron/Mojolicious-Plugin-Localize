@@ -8,8 +8,6 @@ use Data::Dumper;
 my $t = Test::Mojo->new;
 my $app = $t->app;
 
-$ENV{MOJO_LOCALIZE_DEBUG} = 0;
-
 my $lang = [qw/pl de en/];
 
 my $languages = sub  { $lang };

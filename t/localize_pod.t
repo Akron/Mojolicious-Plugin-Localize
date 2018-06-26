@@ -1,5 +1,4 @@
 #!usr/bin/env perl
-use lib '../lib';
 use Mojolicious::Lite;
 use Test::More;
 use Test::Mojo;
@@ -22,9 +21,9 @@ plugin  Localize => {
     },
     App => {
       name => {
-	-long => 'Mojolicious',
-	short => 'Mojo',
-	land  => 'MojoLand'
+        -long => 'Mojolicious',
+        short => 'Mojo',
+        land  => 'MojoLand'
       }
     }
   }

@@ -12,8 +12,6 @@ $ENV{MOJO_LOCALIZE_DEBUG} = 0;
 
 my $languages = sub  { [qw/pl en de/] };
 
-if (0) {
-
 plugin 'Localize' => {
   dict => {
     welcome => {
@@ -379,6 +377,9 @@ is(app->loc('DeepNested_test2_xxx'), 'Das ist de_test2_bar_xxx', 'Deeply Nested 
 is(app->loc('DeepNested_test2_yyy'), 'This is en_test2_bar_yyy', 'Deeply Nested test2');
 
 
+# Reset dictionary
+%{app->localize->dictionary} = ();
+
 # Test subroutines
 plugin Localize => {
   dict => {
@@ -393,17 +394,11 @@ plugin Localize => {
   }
 };
 
-SKIP: {
-  skip 'This is still an issue', 1;
-  is(app->loc('welcome'), 'Cool', 'Function');
-};
-
+is(app->loc('welcome'), 'Cool', 'Function');
 is(app->loc('welcome2', number => 2000), 'Welcome, guest #2000', 'Function');
 
 # Reset dictionary
 %{app->localize->dictionary} = ();
-
-};
 
 
 # Check prefered key problem
@@ -420,7 +415,7 @@ plugin 'Localize' => {
   }
 };
 
-# is(app->loc('example_short'), 'Beispiel', 'Example check');
+is(app->loc('example_short'), 'Beispiel', 'Example check');
 is(app->loc('example'), 'Beispiel', 'Example check');
 
 done_testing;

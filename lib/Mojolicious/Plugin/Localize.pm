@@ -6,19 +6,26 @@ use Mojolicious::Plugin::Config;
 use File::Spec::Functions 'file_name_is_absolute';
 use List::MoreUtils 'uniq';
 
-# $Data::Dumper::Deparse = 1;
-
-# Wrap http://search.cpan.org/~reneeb/Mojolicious-Plugin-I18NUtils-0.05/lib/Mojolicious/Plugin/I18NUtils.pm
-
-# TODO: Support prefixes in dictionary
-# TODO: Support locale sub in dictionary
-# TODO: 'd' is probably better than 'loc'
-#       'd' for dictionary lookup
-# TODO: use Hash::Merge or Hash::Merge::Small
-# TODO: Use Mojo::Template directly
-# TODO: deal with:
-#       <%=numsep $g_count %> <%= quant $g_count, 'guest', 'guests' %> online.'
-# TODO: Deal with bidirectional text
+# TODO:
+#   Wrap http://search.cpan.org/~reneeb/Mojolicious-Plugin-I18NUtils-0.05/lib/Mojolicious/Plugin/I18NUtils.pm
+# TODO:
+#   do not backtrack on upper case dictionary keys
+# TODO:
+#   Support prefixes in dictionary
+# TODO:
+#   Support locale sub in dictionary
+# TODO:
+#   'd' is probably better than 'loc'
+#   'd' for dictionary lookup
+# TODO:
+#   use Hash::Merge or Hash::Merge::Small
+# TODO:
+#   Use Mojo::Template directly
+# TODO:
+#   deal with:
+#   <%= numsep $g_count %> <%= quant $g_count, 'guest', 'guests' %> online.'
+# TODO:
+#   Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
 our $VERSION = '0.18';

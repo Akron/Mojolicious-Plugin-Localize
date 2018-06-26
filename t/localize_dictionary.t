@@ -8,8 +8,6 @@ use Data::Dumper;
 my $t = Test::Mojo->new;
 my $app = $t->app;
 
-$ENV{MOJO_LOCALIZE_DEBUG} = 0;
-
 my $languages = sub  { [qw/pl en de/] };
 
 plugin 'Localize' => {
