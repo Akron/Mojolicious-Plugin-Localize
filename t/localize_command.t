@@ -65,9 +65,15 @@ $app->plugin('Localize' => {
   }
 });
 
-is_deeply(
-  $app->commands->namespaces,
-  [qw/Mojolicious::Command Mojolicious::Plugin::Localize::Command/],
+is(
+  $app->commands->namespaces->[0],
+  'Mojolicious::Command',
+  'Namespaces'
+);
+
+is(
+  $app->commands->namespaces->[-1],
+  'Mojolicious::Plugin::Localize::Command',
   'Namespaces'
 );
 

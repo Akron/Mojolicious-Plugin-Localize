@@ -28,7 +28,7 @@ use List::MoreUtils 'uniq';
 #   Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.18';
+our $VERSION = '0.19';
 
 has 'log';
 
