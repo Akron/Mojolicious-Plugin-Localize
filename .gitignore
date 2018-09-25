@@ -17,3 +17,4 @@ pm_to_blib
 *.old
 .*
 !.gitignore
+lib/Mojolicious/Plugin/Localize/NumberFormat.pm

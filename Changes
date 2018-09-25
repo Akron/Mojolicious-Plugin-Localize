@@ -1,5 +1,6 @@
 0.19 2018-09-23
         - Fix test for Mojolicious >= 8.
+        - Improve support for mounted apps.
 
 0.18 2018-06-24
         - Fix encoding of generated dictionary templates.

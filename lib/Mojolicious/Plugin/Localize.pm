@@ -35,14 +35,9 @@ has 'log';
 # Warning: This only works for default EP templates
 our $TEMPLATE_INDICATOR = qr/(?:^\s*\%)|<\%/m;
 
-# Global dictionary hash
-our $global = {};
-
 # Register plugin
 sub register {
   my ($self, $mojo, $param) = @_;
-
-  state $init = 0;
 
   my (@dict, @resources);
   @dict      = ($param->{dict})       if $param->{dict};      # Hashes
@@ -51,7 +46,7 @@ sub register {
   $self->log($mojo->log);
 
   # Not yet initialized
-  unless ($init) {
+  unless ($mojo->renderer->helpers->{loc}) {
 
     # Load parameter from config file
     if (my $c_param = $mojo->config('Localize')) {
@@ -96,7 +91,7 @@ sub register {
         my %stash = @_;
 
         # Return dictionary entry or default entry
-        return _lookup($c, \%stash, $global, $key, 0, \%stash) ||
+        return _lookup($c, \%stash, $c->stash('localize.dict'), $key, 0, \%stash) ||
           $default_entry // '';
       }
     );
@@ -107,12 +102,11 @@ sub register {
       'localize.dictionary' => sub {
         # Return the complete dictionary in case no parameter is defined
         # This is not documented and may change in further versions
-        return $global;
+        return $_[0]->stash('localize.dict');
       }
     );
 
-    # Initialized
-    $init = 1;
+    $mojo->defaults('localize.dict' => {});
   };
 
   # Merge dictionary resources
@@ -142,6 +136,8 @@ sub register {
     };
   };
 
+  my $dict_global = $mojo->defaults('localize.dict');
+
   # Merge dictionary hashes
   foreach (@dict) {
     my $is_array = ref $_ && ref $_ eq 'ARRAY';
@@ -155,7 +151,7 @@ sub register {
     };
 
     # Merge to global dictionary
-    $self->_merge($global, $is_array ? $_->[0] : $_, $param->{override});
+    $self->_merge($dict_global, $is_array ? $_->[0] : $_, $param->{override});
   };
 };
 
@@ -193,7 +189,7 @@ sub _store {
 
 # Merge dictionaries
 sub _merge {
-  my ($self, $global, $dict, $override) = @_;
+  my ($self, $dict_global, $dict, $override) = @_;
 
   # Iterate over all keys
   foreach my $k (keys %$dict) {
@@ -210,10 +206,10 @@ sub _merge {
     elsif ($k eq '_') {
 
       # If override or not set yet, set the new preferred key
-      if ($override || !defined $global->{_}) {
+      if ($override || !defined $dict_global->{_}) {
 
         _debug($self, qq![MERGE] Override "_"!) if DEBUG;
-        $global->{_} = $dict->{_};
+        $dict_global->{_} = $dict->{_};
       };
 
       next;
@@ -238,37 +234,37 @@ sub _merge {
       };
 
       # If override or not set yet, set the new default key
-      if ($override || !defined $global->{'-'}) {
+      if ($override || !defined $dict_global->{'-'}) {
 
         _debug($self, qq![MERGE] Override default key with "$k"!) if DEBUG;
-        $global->{'-'} = $k;
+        $dict_global->{'-'} = $k;
       };
 
       next if $standalone;
     };
 
     # Insert key - if it not yet exists
-    if (!$global->{$k}) {
+    if (!$dict_global->{$k}) {
 
       # Merge the tree
       if (ref $dict->{$k} eq 'HASH') {
-        $self->_merge($global->{$k} = {}, $dict->{$k}, $override);
+        $self->_merge($dict_global->{$k} = {}, $dict->{$k}, $override);
       }
 
       # Store the plain value
       else {
-        $global->{$k} = _store($dict->{$k});
+        $dict_global->{$k} = _store($dict->{$k});
       };
     }
 
     # Merge key, when both are hashes
-    elsif (ref($global->{$k}) eq ref($dict->{$k}) && ref($global->{$k}) eq 'HASH') {
-      $self->_merge($global->{$k}, $dict->{$k}, $override);
+    elsif (ref($dict_global->{$k}) eq ref($dict->{$k}) && ref($dict_global->{$k}) eq 'HASH') {
+      $self->_merge($dict_global->{$k}, $dict->{$k}, $override);
     }
 
     # Override global and store the plain value
     elsif ($override) {
-      $global->{$k} = _store($dict->{$k});
+      $dict_global->{$k} = _store($dict->{$k});
     };
   };
 };
