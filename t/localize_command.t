@@ -65,19 +65,19 @@ $app->plugin('Localize' => {
   }
 });
 
-is(
-  $app->commands->namespaces->[0],
-  'Mojolicious::Command',
-  'Namespaces'
-);
-
-is(
-  $app->commands->namespaces->[-1],
-  'Mojolicious::Plugin::Localize::Command',
-  'Namespaces'
-);
-
 $cmds = $app->commands;
+
+like(
+  join(' ', @{$cmds->namespaces}),
+  qr!Mojolicious::Command!,
+  'Namespace is set'
+);
+
+like(
+  join(' ', @{$cmds->namespaces}),
+  qr!Mojolicious::Plugin::Localize::Command!,
+  'Namespace is set'
+);
 
 stdout_like(
   sub {
