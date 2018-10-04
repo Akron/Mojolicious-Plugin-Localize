@@ -125,6 +125,33 @@ L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpe
 see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
+=head2 localize-E<gt>preference
+
+  # Dictionary:
+  # {
+  #   '_' => ['de','en'],
+  #   '-en' => {
+  #     welcome => 'Welcome'
+  #   },
+  #   'de' => {
+  #     welcome => 'Willkommen'
+  #   },
+  #   'pl' => {
+  #     welcome => 'Serdecznie witamy'
+  #   }
+  # }
+
+  print $c->localize->preference;
+  # 'de'
+
+Return the prefered existing key for a given dictionary path.
+In case the first level of a dictionary path is a language code
+and the preferred keys are the user's preferred locales,
+this will return the preferred existing language code for a user.
+
+I<This helper is EXPERIMENTAL!>
+
+
 =head1 COMMANDS
 
 =head2 localize
@@ -191,7 +218,7 @@ or to a value.
     }
   }
 
-Values L<Mojo::Template> strings (with default configuration),
+Values are L<Mojo::Template> strings (with default configuration)
 or code references (with the controller object passed when evaluating,
 followed by further parameters as a hash). In case a string is passed as a scalar
 reference, it won't be interpolated as a L<Mojo::Template>.

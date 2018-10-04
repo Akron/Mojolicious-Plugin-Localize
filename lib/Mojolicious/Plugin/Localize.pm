@@ -28,7 +28,7 @@ use List::MoreUtils 'uniq';
 #   Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 has 'log';
 
@@ -91,7 +91,7 @@ sub register {
         my %stash = @_;
 
         # Return dictionary entry or default entry
-        return _lookup($c, \%stash, $c->stash('localize.dict'), $key, 0, \%stash) ||
+        return _lookup($c, \%stash, $c->stash('localize.dict'), $key, 0) ||
           $default_entry // '';
       }
     );
@@ -103,6 +103,26 @@ sub register {
         # Return the complete dictionary in case no parameter is defined
         # This is not documented and may change in further versions
         return $_[0]->stash('localize.dict');
+      }
+    );
+
+    # Return the prefered path
+    $mojo->helper(
+      'localize.preference' => sub {
+        my $c = shift;
+        my $key = [split('_', shift // '')];
+        my $dict = $c->stash('localize.dict');
+
+        if (DEBUG) {
+          _debug($c->app, '[PREF] Look for prefered key for "' . join('_', @$key) . '"');
+        };
+
+        # If a default entry is given, get it
+        my $default_entry = shift;
+
+        # Return dictionary key - so pass the "find_pref" parameter
+        return _lookup($c, {}, $c->stash('localize.dict'), $key, 0, 1) ||
+          $default_entry // '';
       }
     );
 
@@ -272,7 +292,13 @@ sub _merge {
 
 # Lookup dictionary entry recursively
 sub _lookup {
-  my ($c, $stash, $dict, $key, $level) = @_;
+  my ($c, $stash, $dict, $key, $level, $find_pref) = @_;
+  # $c is the controller object
+  # $stash contains a hash reference of stash values
+  # $dict contains the dictionary at the current level
+  # $key is the key array passed to the resolver
+  # $level is the current position in the key
+  # $find_pref is a boolean value indicating that no value is looked up
 
   # Get the current input element to consume
   my @keys;
@@ -290,7 +316,7 @@ sub _lookup {
   my $pos = 0;
   my $lazy = 0;
 
-  # Iterate over all possible keys
+  # Iterate over all possible key fragments
   while () {
 
     # No more keys
@@ -301,6 +327,10 @@ sub _lookup {
           $c->app,
           "[LOOKUP] There is no more key at position $pos on input level [$level]"
         );
+      };
+
+      if ($lazy && $find_pref && $level >= $#{$key}) {
+        return $keys[$pos-1];
       };
 
       # Stop processing
@@ -352,7 +382,7 @@ sub _lookup {
       };
 
       # The match is final
-      if (!ref($match) || ref($match) eq 'SCALAR' || ref($match) eq 'CODE') {
+      if ((!ref($match) || ref($match) eq 'SCALAR' || ref($match) eq 'CODE') && !$find_pref) {
 
         # Everything is cosumed - fine
         if ($level >= $#{$key}) {
@@ -368,6 +398,7 @@ sub _lookup {
             return $$match;
           }
 
+          # Value is a subroutine
           elsif (ref $match eq 'CODE') {
             my $value = $match->($c, %$stash);
             if (DEBUG) {
@@ -379,6 +410,7 @@ sub _lookup {
             return $value;
           };
 
+          # Value is a template
           my $value = $c->render_to_string(inline => $match, %$stash);
           $value = trim $value unless delete $stash->{no_trim};
           if (DEBUG) {
@@ -391,6 +423,19 @@ sub _lookup {
         };
 
         # Check another path
+      }
+
+      # Get the relevant key if everything is consumed
+      elsif (ref($match) && $find_pref && $level > $#{$key}) {
+
+        if (DEBUG) {
+          _debug(
+            $c->app,
+            '[PREF] Found key "' . $keys[$pos] . '"'
+          );
+        };
+
+        return $keys[$pos];
       }
 
       # No final match found - go on
@@ -408,7 +453,7 @@ sub _lookup {
 
         # Call lookup recursively
         my $found = _lookup(
-          $c, $stash, $match, $key, $level_up
+          $c, $stash, $match, $key, $level_up, $find_pref
         );
 
         # Found something
@@ -605,6 +650,33 @@ L<Mojolicious::Plugin::Localize> loads further plugins establishing nested helpe
 see L<localize-E<gt>locale|Mojolicious::Plugin::Localize::Locale/locale>.
 
 
+=head2 localize-E<gt>preference
+
+  # Dictionary:
+  # {
+  #   '_' => ['de','en'],
+  #   '-en' => {
+  #     welcome => 'Welcome'
+  #   },
+  #   'de' => {
+  #     welcome => 'Willkommen'
+  #   },
+  #   'pl' => {
+  #     welcome => 'Serdecznie witamy'
+  #   }
+  # }
+
+  print $c->localize->preference;
+  # 'de'
+
+Return the prefered existing key for a given dictionary path.
+In case the first level of a dictionary path is a language code
+and the preferred keys are the user's preferred locales,
+this will return the preferred existing language code for a user.
+
+I<This helper is EXPERIMENTAL!>
+
+
 =head1 COMMANDS
 
 =head2 localize
@@ -671,7 +743,7 @@ or to a value.
     }
   }
 
-Values L<Mojo::Template> strings (with default configuration),
+Values are L<Mojo::Template> strings (with default configuration)
 or code references (with the controller object passed when evaluating,
 followed by further parameters as a hash). In case a string is passed as a scalar
 reference, it won't be interpolated as a L<Mojo::Template>.
