@@ -9,6 +9,7 @@ t/localize_quant.t
 t/localize_pod.t
 t/localize_locale.t
 t/localize_force.t
+t/localize_preference.t
 t/localize_config.t
 t/localize_mount.t
 t/localize_dictionary.t
