@@ -110,6 +110,10 @@ sub register {
     $mojo->helper(
       'localize.preference' => sub {
         my $c = shift;
+
+        my $stash = $c->stash;
+        return $stash->{'localize.preference'} if $stash->{'localize.preference'};
+
         my $key = [split('_', shift // '')];
         my $dict = $c->stash('localize.dict');
 
@@ -121,8 +125,9 @@ sub register {
         my $default_entry = shift;
 
         # Return dictionary key - so pass the "find_pref" parameter
-        return _lookup($c, {}, $c->stash('localize.dict'), $key, 0, 1) ||
+        $stash->{'localize.preference'} = _lookup($c, {}, $c->stash('localize.dict'), $key, 0, 1) ||
           $default_entry // '';
+        return $stash->{'localize.preference'};
       }
     );
 

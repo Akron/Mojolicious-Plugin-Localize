@@ -13,6 +13,11 @@ sub register {
     'localize.locale' => sub {
       my $c = shift;
 
+      # Delete preference
+      if (@_ != 0) {
+        delete $c->stash->{'localize.preference'};
+      };
+
       # Already requested from stash
       if ($c->stash('localize.locale')) {
 
