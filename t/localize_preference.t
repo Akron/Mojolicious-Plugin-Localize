@@ -11,7 +11,9 @@ my $lang = [qw/de en/];
 
 plugin Localize => {
   dict => {
-    _ => $lang,
+    _ =>  sub {
+      $lang
+    },
     -en => {
       welcome => 'Welcome'
     },
@@ -30,9 +32,11 @@ plugin Localize => {
 is(app->localize->preference, 'de', 'Get preference');
 is(app->localize->preference('MyApp'), 'pl', 'Get preference');
 
+
 $lang = [qw/en de/];
 
-is(app->localize->preference, 'de', 'Get preference');
+
+is(app->localize->preference, 'en', 'Get preference');
 
 plugin Localize => {
   dict => {
