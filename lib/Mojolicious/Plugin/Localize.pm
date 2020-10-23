@@ -294,15 +294,29 @@ sub _merge {
   };
 };
 
+sub _mark {
+  my ($keys, $level) = @_;
+  my @x = ();
+  for (my $i = 0; $i <= $#$keys; $i++) {
+    if ($i == $level) {
+      push @x, '[' . $keys->[$i] . ']';
+    }
+    else {
+      push @x, $keys->[$i];
+    };
+  };
+
+  return join('_',@x);
+};
 
 # Lookup dictionary entry recursively
 sub _lookup {
   my ($c, $stash, $dict, $key, $level, $find_pref) = @_;
-  # $c is the controller object
-  # $stash contains a hash reference of stash values
-  # $dict contains the dictionary at the current level
-  # $key is the key array passed to the resolver
-  # $level is the current position in the key
+  # $c         is the controller object
+  # $stash     contains a hash reference of stash values
+  # $dict      contains the dictionary at the current level
+  # $key       is the key array passed to the resolver
+  # $level     is the current position in the key
   # $find_pref is a boolean value indicating that no value is looked up
 
   # Get the current input element to consume
@@ -312,6 +326,7 @@ sub _lookup {
 
     if (DEBUG) {
       _debug($c->app, qq![LOOKUP] There is a primary key "$primary" at input level [$level]!);
+      _debug($c->app, qq![LOOKUP] at "! . _mark($key, $level) . '"');
     };
   };
 
@@ -320,6 +335,7 @@ sub _lookup {
   # Check all possibilities
   my $pos = 0;
   my $lazy = 0;
+
 
   # Iterate over all possible key fragments
   while () {

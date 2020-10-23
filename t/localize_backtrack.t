@@ -14,8 +14,6 @@ my $languages = sub  {
   return $languages_ref
 };
 
-$ENV{MOJO_LOCALIZE_DEBUG} = 0;
-
 my $dict = {
   _ => $languages,
   '-' => 'en',
@@ -39,6 +37,7 @@ my $dict = {
     }
   }
 };
+
 
 plugin 'Localize' => {
   dict => $dict
@@ -73,20 +72,33 @@ is($app->loc('Test_pwdconfirm'), 'Confirm password', 'Confirm password');
 # Always mark default entries
 $app->plugin('Localize' => {
   dict => {
+    _ => $languages,
+    en => {
+      title => {
+        -short => 'My Sojolicious',
+        desc => 'A federated social web toolkit'
+      }
+    },
+    de => {
+      title => {
+        short => 'Mein Sojolicious',
+        desc => 'Ein Werkzeugkasten für das Social Web'
+      }
+    },
+    Template => {
       _ => $languages,
-      en => {
-        title => {
-          -short => 'My Sojolicious',
-          desc => 'A federated social web toolkit'
+      -en => {
+        confirmmail => {
+          forgotten => 'en/mail/forgotten_confirm'
         }
       },
       de => {
-        title => {
-          short => 'Mein Sojolicious',
-          desc => 'Ein Werkzeugkasten für das Social Web'
+        confirmmail => {
+          forgotten => 'de/mail/forgotten_confirm'
         }
       }
     }
+  }
 });
 
 @$languages_ref =  (qw/en de/);
@@ -94,6 +106,9 @@ is($app->loc('title'), 'My Sojolicious', 'Title');
 @$languages_ref =  (qw/de en/);
 is($app->loc('title'), 'My Sojolicious', 'Title');
 
+
+# After that, check MojoOroConfirmMail!
+is($app->loc('Template_confirmmail_forgotten'), 'de/mail/forgotten_confirm', 'In template');
 
 
 done_testing;
