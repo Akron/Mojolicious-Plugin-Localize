@@ -411,11 +411,12 @@ plugin 'Localize' => {
         desc => 'Example sentence'
       }
     },
-    'de_example_-short' => 'Beispiel'
+    'de_example_-short' => 'Beispiel',
+    'de_example_-desc' => ' das ist ein Beispiel'
   }
 };
 
 is(app->loc('example_short'), 'Beispiel', 'Example check');
-is(app->loc('example'), 'Beispiel', 'Example check');
+is(app->loc('example_desc'), ' das ist ein Beispiel', 'Example desc');
 
 done_testing;

@@ -1,6 +1,6 @@
 package Mojolicious::Plugin::Localize;
 use Mojo::Base 'Mojolicious::Plugin';
-use Mojo::Util qw/trim decode/;
+use Mojo::Util qw/decode/;
 use Mojo::File qw/path/;
 use Mojolicious::Plugin::Config;
 use File::Spec::Functions 'file_name_is_absolute';
@@ -28,7 +28,7 @@ use List::MoreUtils 'uniq';
 #   Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 has 'log';
 
@@ -433,7 +433,7 @@ sub _lookup {
 
           # Value is a template
           my $value = $c->render_to_string(inline => $match, %$stash);
-          $value = trim $value unless delete $stash->{no_trim};
+          chomp($value) unless delete $stash->{no_trim};
           if (DEBUG) {
             _debug(
               $c->app,
@@ -517,7 +517,7 @@ sub _get_pref_keys {
   unless (ref $index) {
 
     my $key = $c->render_to_string(inline => $index, %$stash);
-    $key = trim $key unless delete $stash->{no_trim};
+    chomp($key) unless delete $stash->{no_trim};
     return $key;
   }
 
@@ -1015,7 +1015,7 @@ Support for L<CLDR|https://metacpan.org/pod/Locale::CLDR>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2018, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2021, L<Nils Diewald|http://nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

@@ -1,3 +1,6 @@
+0.21 2021-01-14
+        - Chomping instead of trimming values.
+
 0.20 2018-10-08
         - Fix test for Mojolicious >= 8.01.
         - Add localize->preference helper.
