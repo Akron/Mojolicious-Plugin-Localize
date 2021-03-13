@@ -390,12 +390,14 @@ plugin Localize => {
       my $c = shift;
       my %stash = @_;
       return 'Welcome, guest #' . $stash{number};
-    }
+    },
+    welcomeLink => q!Hello <%= link_to 'Me' => 'https://sojolicious.example' %>!
   }
 };
 
 is(app->loc('welcome'), 'Cool', 'Function');
 is(app->loc('welcome2', number => 2000), 'Welcome, guest #2000', 'Function');
+is(app->loc('welcomeLink'), 'Hello <a href="https://sojolicious.example">Me</a>', 'Link');
 
 # Reset dictionary
 %{app->localize->dictionary} = ();
