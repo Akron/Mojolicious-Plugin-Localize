@@ -319,6 +319,7 @@ plugin Localize => {
       de => {
         a => {
           b => {
+            '.' => 'Das ist nur ab!',
             c => 'Das ist c!'
           }
         },
@@ -336,6 +337,7 @@ plugin Localize => {
       -en => {
         a => {
           b => {
+            '.' => 'This is ab only!',
             c => 'This is c!',
             d => 'This is d!'
           }
@@ -350,6 +352,11 @@ plugin Localize => {
           bar => {
             yyy => 'This is en_test2_bar_yyy'
           }
+        },
+        test3 => {
+          _ => [qw/foo bar/],
+          '.' => 'Funny',
+          'foo' => 'Check'
         }
       }
     }
@@ -360,6 +367,8 @@ is(app->loc('DeepNested_a_b_c'), 'Das ist c!', 'Deeply Nested found');
 is(app->loc('DeepNested_de_a_b_c'), 'Das ist c!', 'Deeply Nested exact');
 is(app->loc('DeepNested_a_b_d'), 'This is d!', 'Deeply Nested backtrack');
 is(app->loc('DeepNested_de_a_b_d'), '', 'Deeply Nested exact not found');
+is(app->loc('DeepNested_a_b'), 'Das ist nur ab!', 'Deeply Nested found');
+
 
 # Check default message
 is(app->loc('DeepNested_de_a_b_d', 'Default message'),
@@ -375,6 +384,10 @@ is(app->loc('DeepNested_test1_bar'), 'Das ist bar!', 'Deeply Nested test1');
 
 is(app->loc('DeepNested_test2_xxx'), 'Das ist de_test2_bar_xxx', 'Deeply Nested test2');
 is(app->loc('DeepNested_test2_yyy'), 'This is en_test2_bar_yyy', 'Deeply Nested test2');
+
+is(app->loc('DeepNested_test3'), 'Funny', 'Deeply Nested test3');
+is(app->loc('DeepNested_test3_foo'), 'Check', 'Deeply Nested test3_foo');
+is(app->loc('DeepNested_test3_xy'), 'Check', 'Deeply Nested test3_xy');
 
 
 # Reset dictionary
@@ -420,5 +433,27 @@ plugin 'Localize' => {
 
 is(app->loc('example_short'), 'Beispiel', 'Example check');
 is(app->loc('example_desc'), ' das ist ein Beispiel', 'Example desc');
+
+
+# Check end key
+
+# Reset dictionary
+%{app->localize->dictionary} = ();
+
+plugin 'Localize' => {
+  dict => {
+    welcome => {
+      '.' => 'Welcome!!!',
+      _ => [qw/en de/],
+      de => 'Willkommen!',
+      en => 'Welcome!'
+    }
+  }
+};
+
+is(app->loc('welcome'), 'Welcome!!!', 'End key');
+is(app->loc('welcome_en'), 'Welcome!', 'End key');
+is(app->loc('welcome_pl'), 'Welcome!', 'End key');
+is(app->loc('welcome_de'), 'Willkommen!', 'End key');
 
 done_testing;

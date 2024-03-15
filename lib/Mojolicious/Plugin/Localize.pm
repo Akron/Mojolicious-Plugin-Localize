@@ -28,7 +28,7 @@ use List::MoreUtils 'uniq';
 #   Deal with bidirectional text
 
 use constant DEBUG => $ENV{MOJO_LOCALIZE_DEBUG} || 0;
-our $VERSION = '0.21';
+our $VERSION = '0.22';
 
 has 'log';
 
@@ -357,6 +357,9 @@ sub _lookup {
       # Stop processing
       return if $lazy;
 
+      # There is a stop value defined and no primary exists
+      push @keys, '.' if $dict->{'.'} && !$keys[0];
+
       # Lazy load further keys
       # Add preferred keys
       if ($dict->{'_'}) {
@@ -591,8 +594,6 @@ Mojolicious, heavily inspired by Mozilla's L<l20n|http://l20n.org/>.
 Instead of being a reimplementation it uses L<Mojo::Template> for string interpolation,
 L<Mojolicious::Plugin::Config> for dictionaries and L<helpers|Mojolicious/helper>
 for template functions.
-
-B<Warning!> This is early software and behaviour may change without notifications!
 
 
 =head1 METHODS
@@ -930,6 +931,27 @@ trigger backtracking and return C<My Sojolicious> as well.
 To return C<Mein Sojolicious> in case of C<loc('title')> for the locale
 C<de>, the second C<short> key needs to be prefixed as well.
 
+
+=head2 End Keys
+
+The period sign is a special key, marking an end value on the final dictionary level.
+This prevents preferred and default keys to be searched, when the key is already consumed.
+End keys can only point to values.
+
+  {
+    welcome => {
+      '.' => 'Welcome!!!',
+      _ => [qw/en de/],
+      de => 'Willkommen!',
+      en => 'Welcome!'
+    }
+  }
+
+Here the key C<welcome> will return the value C<Welcome!!!>, while
+C<welcome_de> will return C<Willkommen!> and C<welcome_pl> will
+return C<Welcome!>.
+
+
 =head2 Forcing Preferred and Default Keys
 
   {
@@ -1015,7 +1037,7 @@ Support for L<CLDR|https://metacpan.org/pod/Locale::CLDR>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2014-2021, L<Nils Diewald|http://nils-diewald.de/>.
+Copyright (C) 2014-2024, L<Nils Diewald|https://www.nils-diewald.de/>.
 
 This program is free software, you can redistribute it
 and/or modify it under the terms of the Artistic License version 2.0.

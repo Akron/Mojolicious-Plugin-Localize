@@ -1,3 +1,8 @@
+0.22 2024-03-15
+        - Introduce end keys.
+          WARNING: This may break dictionaries which use the
+          '.' as a key.
+
 0.21 2021-01-14
         - Chomping instead of trimming values.
 
